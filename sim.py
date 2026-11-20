@@ -18,8 +18,19 @@ DATA_API = "https://data-api.polymarket.com/v2/trades"
 CANCEL_BEFORE_H = {"S1": 24, "S2": 24, "S3": 0}  # S1/S2 到期前 24h 撤單；S3 持有到中午
 
 
-def ticket_path(tid):
-    return os.path.join(DIRS["tickets"], f"{tid}.json")
+def ticket_dir(is_test=False):
+    """測試單放 tickets/test/，與績效、風控用的 tickets/*.json 分開（glob 不會遞迴進去）。"""
+    d = os.path.join(DIRS["tickets"], "test") if is_test else DIRS["tickets"]
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def ticket_path(tid, is_test=False):
+    return os.path.join(ticket_dir(is_test), f"{tid}.json")
+
+
+def trade_key(tr):
+    return f"{tr.get('transaction_hash')}|{tr.get('token_id')}|{tr['price']}|{tr['size']}|{tr['side']}"
 
 
 def book_side_for(outcome, yes_book):
@@ -33,9 +44,10 @@ def book_side_for(outcome, yes_book):
     return no_asks, no_bids
 
 
-def place(tid, strategy, market, outcome, limit, shares, usd, yes_book):
-    """建立 ticket（冪等：同 id 已存在就不重建）。"""
-    p = ticket_path(tid)
+def place(tid, strategy, market, outcome, limit, shares, usd, yes_book,
+          is_test=False, cancel_at_epoch=None):
+    """建立 ticket（冪等：同 id 已存在就不重建）。is_test=True 的單不計入績效與風控。"""
+    p = ticket_path(tid, is_test)
     if os.path.exists(p):
         return read_json(p), False
     sellers, same = book_side_for(outcome, yes_book)
@@ -51,7 +63,8 @@ def place(tid, strategy, market, outcome, limit, shares, usd, yes_book):
         "limit_price": limit, "shares": round(shares, 4), "usd": usd,
         "order_type": "maker_limit_buy (simulated)",
         "placed_at": stamp(), "end_utc": market["end_utc"],
-        "cancel_at_epoch": end.timestamp() - CANCEL_BEFORE_H.get(strategy, 0) * 3600,
+        "cancel_at_epoch": cancel_at_epoch or end.timestamp() - CANCEL_BEFORE_H.get(strategy, 0) * 3600,
+        "is_test": bool(is_test), "seen_trades": {},
         "queue_ahead": queue, "status": "open", "filled_shares": 0.0,
         "fill_cost": 0.0, "fee_paid": 0.0, "fee_rate_maker": fees.MAKER_FEE_RATE,
         "last_checked_epoch": None, "fills": [],
@@ -90,13 +103,27 @@ def apply_fills(t, trades, yes_book, now=None):
     now = now or now_utc()
     if t["status"] in ("filled", "cancelled"):
         return t
-    since = t["last_checked_epoch"] or t["placed_at"]["epoch"]
+    placed = t["placed_at"]["epoch"]
     L = t["limit_price"]
     remaining = t["shares"] - t["filled_shares"]
     through = at = 0.0
+    # 成交紀錄 API 有索引延遲：每次都從掛單時間重看，用 seen_trades 去重（避免漏掉晚到的成交）
+    batch = {}
     for tr in trades:
-        if tr["timestamp"] <= since:
+        if tr["timestamp"] <= placed:
             continue
+        batch[trade_key(tr)] = batch.get(trade_key(tr), 0) + 1
+    seen = t.setdefault("seen_trades", {})
+    new_counts = {}
+    for k, n in batch.items():
+        if n > seen.get(k, 0):
+            new_counts[k] = n - seen.get(k, 0)
+            seen[k] = n
+    for tr in trades:
+        k = trade_key(tr)
+        if tr["timestamp"] <= placed or new_counts.get(k, 0) <= 0:
+            continue
+        new_counts[k] -= 1
         px = trade_px_for(t["outcome"], tr)
         if px is None:
             continue
@@ -140,7 +167,7 @@ def check_all(board_rows):
     done = []
     for t in open_tickets():
         try:
-            trades = fetch_trades(t["condition_id"], t["last_checked_epoch"] or t["placed_at"]["epoch"])
+            trades = fetch_trades(t["condition_id"], (t["last_checked_epoch"] or t["placed_at"]["epoch"]) - 900)
         except Exception as e:
             t.setdefault("errors", []).append(f"{stamp()['utc']} trades unavailable: {e}")
             trades = []

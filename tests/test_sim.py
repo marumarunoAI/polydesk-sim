@@ -77,6 +77,20 @@ class SimTest(unittest.TestCase):
         # NO 同價排隊量 = YES 賣單在 0.40 的量 = 0 → 0.60 的 4 股 + 換算 0.55 的 2 股 = 6
         self.assertEqual(t["filled_shares"], 6)
 
+    def test_same_trade_not_double_counted_and_late_trade_still_seen(self):
+        a = dict(tr("Yes", "SELL", 0.29, 3, self.t0 + 5), transaction_hash="0xa", token_id="Y")
+        t = sim.apply_fills(self.t, [a], BOOK)
+        t = sim.apply_fills(t, [a], BOOK)  # 同一筆再出現（重疊視窗）→ 不重複計
+        self.assertEqual(t["filled_shares"], 3)
+        late = dict(tr("Yes", "SELL", 0.28, 2, self.t0 + 2), transaction_hash="0xb", token_id="Y")
+        t = sim.apply_fills(t, [a, late], BOOK)  # 時間戳較早但晚到的成交 → 仍計入
+        self.assertEqual(t["filled_shares"], 5)
+
+    def test_test_tickets_isolated(self):
+        t, _ = sim.place("tt", "S1", MKT, "YES", 0.30, 10, 3.0, BOOK, is_test=True)
+        self.assertTrue(t["is_test"])
+        self.assertNotIn("tt", [x["id"] for x in sim.open_tickets()])
+
     def test_cancel_before_expiry(self):
         t = dict(self.t, cancel_at_epoch=self.t0 + 5)
         t = sim.apply_fills(t, [], BOOK, now=common.now_utc() + timedelta(seconds=10))
