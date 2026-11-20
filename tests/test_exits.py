@@ -115,7 +115,7 @@ class ExitTest(unittest.TestCase):
         journal.save([{"date_taipei": "2020-01-01", "strategy": "S1", "market_slug": "m", "fair": 0.5,
                        "entry_mid": 0.3, "result": "", "ticket_id": "p1", "pnl": ""}])
         from unittest import mock
-        with mock.patch.object(settle, "resolution", return_value=1):
+        with mock.patch.object(settle, "resolution", return_value=1),              mock.patch.object(sim, "fetch_trades", return_value=[]):
             settle.run()
         pnl = float(journal.load()[0]["pnl"])
         # 賣 4 股收入 4×0.34；剩 6 股 YES 贏 → +6；成本 3.0

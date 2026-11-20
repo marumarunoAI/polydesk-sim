@@ -7,8 +7,8 @@
   S3：持有到中午結算，不適用 24 小時規則
 輸入缺（fair/mid unavailable）→ 本輪不評估邊際（時間規則照常），不當成出場理由。
 
-出場做法（寫明所選做法）：掛 **maker 賣單**，掛在自家這一側最佳賣價 −1 tick，之後用真實成交／訂單簿深度判定
-成交（sim.place_exit，鏡像成「買相反 outcome」重用 apply_fills）。**不假設以 mid 成交**，也不吃單。
+出場做法（寫明所選做法）：掛 **maker 賣單**，掛在自家這一側最佳賣價 −1 tick，之後只依真實成交紀錄判定
+成交（sim.place_exit，鏡像成「買相反 outcome」重用 apply_fills）。**不假設以 mid 成交**，也不吃單；穿價則拒單。
 出場單掛到市場到期；到期仍沒成交的部分持有到結算。出場紀錄寫 journal/exits.csv（以 ticket id 去重）。"""
 import csv
 import glob
@@ -90,6 +90,11 @@ def run(rows, fairs, ev, now=None):
             x, created = sim.place_exit(t, row, row["yes_book"], reason, now)
         except ValueError as e:
             out.append((t["id"], reason, f"exit not placed: {e}"))
+            continue
+        if x.get("status") == "rejected_post_only":
+            why = x.get("reject_reason") or "rejected_post_only"
+            bb, ba = x.get("reject_best_bid"), x.get("reject_best_ask")
+            out.append((t["id"], reason, f"exit not placed: {why} (best bid {bb}, best ask {ba})"))
             continue
         if created:
             _log_exit(t, x, reason)

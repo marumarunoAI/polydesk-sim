@@ -267,9 +267,15 @@ def _run(hl_liq_ref=0):
                 else:
                     tid = f"{day}_{s}_{slug}"
                     t, _ = sim.place(tid, s, row, d["side"], limit, shares, usd, row["yes_book"])
-                    exposure["by_market"][slug] += usd
-                    exposure["by_asset_barrier"][row["asset"]] += usd
-                    size, status, fee = usd, t["status"], 0.0
+                    if t["status"] == "rejected_post_only":
+                        why = t.get("reject_reason") or "rejected_post_only"
+                        bb, ba = t.get("reject_best_bid"), t.get("reject_best_ask")
+                        d = dict(d, reason=f"{d['reason']}; {why} (best bid {bb}, best ask {ba})")
+                        size, status, fee = 0.0, t["status"], 0.0
+                    else:
+                        exposure["by_market"][slug] += usd
+                        exposure["by_asset_barrier"][row["asset"]] += usd
+                        size, status, fee = usd, t["status"], 0.0
             mir = mirrors.get(slug)
             new_rows.append({
                 "time_taipei": stamp(now)["taipei"], "time_utc": stamp(now)["utc"],

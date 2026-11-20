@@ -1,9 +1,15 @@
 # 真實資料成交模擬驗證報告
 
-- 產生時間：2026-11-20T22:10:31+08:00（台北）／2026-11-20T14:10:31Z
+- 產生時間：2026-11-20T23:22:39+08:00（台北）／2026-11-20T15:22:39Z
 - 驗證期間：2026-11-20T18:44:16+08:00 → 預計結束 2026-11-20T21:44:16+08:00（台北），每 ~60 秒輪詢一次
 - 性質：純模擬。測試單（`is_test=true`，放 `tickets/test/`）不進 journal、績效與風控；沒有任何簽名或送單，只讀公開 API。
-- 判斷程式：`sim.apply_fills()`。獨立檢查用 `validation_report.oracle()`（只看掛單後的真實成交，算上下界）。
+- 判斷程式：`sim.apply_fills()`（只認 Data API `/v2/trades`；建立時穿價為 `rejected_post_only`）。獨立檢查用 `validation_report.oracle()`（只看掛單後的真實成交，算上下界）。「合理？」欄直接比對模擬成交與上下界，超出即標不合理。
+
+## 規則更正
+
+- 舊版 `sim.apply_fills` 把訂單簿穿價深度（`book_crossed_depth`）當作成交依據，過於樂觀；舊報告的「合理？」把這段深度加進上界，因此會把超出成交紀錄上下界的模擬成交標成合理。
+- 舊結論「全部落在上下界內」有誤。典型例子：`will-ethereum-reach-1800-on-november-20-2026` 四張 YES 測試單，獨立上下界為 0/0，舊模擬卻判 10/10 成交（全部來自簿深穿價），期間沒有能成交的真實 taker 紀錄（僅見一筆 Yes BUY，不構成 YES 買單成交）。
+- 現行規則：建立時限價穿過或碰到對手最佳價 → 直接拒單，不成交、不改用 taker、不記手續費、不自動改價。掛單後簿面變動不作為成交或拒單依據，只認真實成交（穿過限價，或同價且扣完排隊量）。撤單／結算前從掛單時間再抓一次成交。
 
 ## 市場
 
@@ -31,34 +37,28 @@
 | bitcoin-above-62k-on-november-20-2026 | near_ask | YES@0.609 | 0 | 10 / 10（穿過 41.4354，同價 0） | 10/10 | filled | 是  |
 | bitcoin-above-62k-on-november-20-2026 | far_below | YES@0.6 | 105.65 | 10 / 10（穿過 33.2354，同價 0） | 10/10 | filled | 是  |
 | bitcoin-above-62k-on-november-20-2026 | no_bid_plus1 | NO@0.391 | 0 | 10 / 10（穿過 36.2502，同價 0） | 10/10 | filled | 是  |
-| will-ethereum-reach-1800-on-november-2 | at_bid | YES@0.38 | 1287 | 0 / 0（穿過 0，同價 0） | 10/10 | filled | 是  |
-| will-ethereum-reach-1800-on-november-2 | bid_plus1 | YES@0.39 | 0 | 0 / 0（穿過 0，同價 0） | 10/10 | filled | 是  |
-| will-ethereum-reach-1800-on-november-2 | near_ask | YES@0.42 | 0 | 0 / 0（穿過 0，同價 0） | 10/10 | filled | 是  |
-| will-ethereum-reach-1800-on-november-2 | far_below | YES@0.33 | 0 | 0 / 0（穿過 0，同價 0） | 10/10 | filled | 是  |
+| will-ethereum-reach-1800-on-november-2 | at_bid | YES@0.38 | 1287 | 0 / 0（穿過 0，同價 0） | 0/10 | cancelled | 是 期間沒有任何能成交的真實成交 → 不成交，合理 |
+| will-ethereum-reach-1800-on-november-2 | bid_plus1 | YES@0.39 | 0 | 0 / 0（穿過 0，同價 0） | 0/10 | cancelled | 是 期間沒有任何能成交的真實成交 → 不成交，合理 |
+| will-ethereum-reach-1800-on-november-2 | near_ask | YES@0.42 | 0 | 0 / 0（穿過 0，同價 0） | 0/10 | cancelled | 是 期間沒有任何能成交的真實成交 → 不成交，合理 |
+| will-ethereum-reach-1800-on-november-2 | far_below | YES@0.33 | 0 | 0 / 0（穿過 0，同價 0） | 0/10 | cancelled | 是 期間沒有任何能成交的真實成交 → 不成交，合理 |
 | will-ethereum-reach-1800-on-november-2 | no_bid_plus1 | NO@0.58 | 0 | 0 / 0（穿過 0，同價 0） | 0/10 | cancelled | 是 期間沒有任何能成交的真實成交 → 不成交，合理 |
 
 ## 成交明細（模擬判斷）
 
-- 11-20 18:48:23 台北 `at_bid` YES@0.915 +10 股，依據 {'trades_through': 0.0, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 876.0}
-- 11-20 18:48:23 台北 `bid_plus1` YES@0.916 +10 股，依據 {'trades_through': 0.0, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 922.02}
-- 11-20 18:45:23 台北 `near_ask` YES@0.921 +10 股，依據 {'trades_through': 0.0, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 24.53}
-- 11-20 18:55:23 台北 `far_below` YES@0.91 +10 股，依據 {'trades_through': 32.819149, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 0.0}
-- 11-20 18:50:23 台北 `no_bid_plus1` NO@0.079 +2.31 股，依據 {'trades_through': 0.0, 'trades_at_limit_after_queue': 2.31, 'book_crossed_depth': 0.0}
-- 11-20 18:47:23 台北 `at_bid` YES@0.085 +10 股，依據 {'trades_through': 0.0, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 40.93000000000001}
-- 11-20 18:47:23 台北 `bid_plus1` YES@0.086 +10 股，依據 {'trades_through': 0.0, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 738.93}
-- 11-20 18:47:23 台北 `near_ask` YES@0.087 +10 股，依據 {'trades_through': 0.0, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 6418.93}
-- 11-20 18:48:23 台北 `far_below` YES@0.08 +10 股，依據 {'trades_through': 0.0, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 5529.93}
-- 11-20 18:46:23 台北 `at_bid` YES@0.605 +10 股，依據 {'trades_through': 0.0, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 202.96999999999997}
-- 11-20 18:45:23 台北 `bid_plus1` YES@0.606 +8.2 股，依據 {'trades_through': 8.2, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 0.0}
-- 11-20 18:46:23 台北 `bid_plus1` YES@0.606 +1.8 股，依據 {'trades_through': 0.0, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 471.87}
-- 11-20 18:44:23 台北 `near_ask` YES@0.609 +10 股，依據 {'trades_through': 0.0, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 428.0}
-- 11-20 18:47:23 台北 `far_below` YES@0.6 +10 股，依據 {'trades_through': 0.0, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 586.5400000000001}
-- 11-20 18:45:23 台北 `no_bid_plus1` NO@0.391 +10 股，依據 {'trades_through': 0.0, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 6158.93}
-- 11-20 18:51:23 台北 `at_bid` YES@0.38 +10 股，依據 {'trades_through': 0.0, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 1226.0}
-- 11-20 18:48:23 台北 `bid_plus1` YES@0.39 +10 股，依據 {'trades_through': 0.0, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 2434.0}
-- 11-20 18:44:23 台北 `near_ask` YES@0.42 +5 股，依據 {'trades_through': 0.0, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 5.0}
-- 11-20 18:46:23 台北 `near_ask` YES@0.42 +5 股，依據 {'trades_through': 0.0, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 2400.0}
-- 11-20 19:11:47 台北 `far_below` YES@0.33 +10 股，依據 {'trades_through': 0.0, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 30.0}
+- 11-20 21:44:16 台北 `at_bid` YES@0.915 +10 股，依據 {'trades_through': 4472.646116999998, 'trades_at_limit_after_queue': 0.0}
+- 11-20 21:44:16 台北 `bid_plus1` YES@0.916 +10 股，依據 {'trades_through': 4472.646116999998, 'trades_at_limit_after_queue': 0.0}
+- 11-20 21:44:16 台北 `near_ask` YES@0.921 +10 股，依據 {'trades_through': 4472.646116999998, 'trades_at_limit_after_queue': 0.0}
+- 11-20 21:44:16 台北 `far_below` YES@0.91 +10 股，依據 {'trades_through': 4458.706116999999, 'trades_at_limit_after_queue': 0.0}
+- 11-20 21:44:16 台北 `no_bid_plus1` NO@0.079 +2.31 股，依據 {'trades_through': 0.0, 'trades_at_limit_after_queue': 2.31}
+- 11-20 21:44:16 台北 `at_bid` YES@0.085 +10 股，依據 {'trades_through': 2042.1715060000001, 'trades_at_limit_after_queue': 0.0}
+- 11-20 21:44:16 台北 `bid_plus1` YES@0.086 +10 股，依據 {'trades_through': 2042.1715060000001, 'trades_at_limit_after_queue': 0.0}
+- 11-20 21:44:16 台北 `near_ask` YES@0.087 +10 股，依據 {'trades_through': 2042.1715060000001, 'trades_at_limit_after_queue': 0.0}
+- 11-20 21:44:16 台北 `far_below` YES@0.08 +10 股，依據 {'trades_through': 2031.2544830000002, 'trades_at_limit_after_queue': 0.0}
+- 11-20 21:44:16 台北 `at_bid` YES@0.605 +10 股，依據 {'trades_through': 33.235377, 'trades_at_limit_after_queue': 0.0}
+- 11-20 21:44:16 台北 `bid_plus1` YES@0.606 +10 股，依據 {'trades_through': 41.435377, 'trades_at_limit_after_queue': 0.0}
+- 11-20 21:44:16 台北 `near_ask` YES@0.609 +10 股，依據 {'trades_through': 41.435377, 'trades_at_limit_after_queue': 0.0}
+- 11-20 21:44:16 台北 `far_below` YES@0.6 +10 股，依據 {'trades_through': 33.235377, 'trades_at_limit_after_queue': 0.0}
+- 11-20 21:44:16 台北 `no_bid_plus1` NO@0.391 +10 股，依據 {'trades_through': 36.250163, 'trades_at_limit_after_queue': 0.0}
 
 ## 期間真實成交（taker 側，節錄每市場最近 15 筆）
 
@@ -131,10 +131,9 @@
 ## 額外檢查
 
 - 成交紀錄 API 延遲（首次看到時間 − 成交時間戳）：中位數 457 秒，最大 954 秒，>120 秒者 78/92 筆。`sim.apply_fills` 每次從掛單時間重掃並以交易鍵去重，所以晚到的成交不會漏。
-- 「mid 碰到限價但沒有真實賣單成交」的測試單：2 張（no_bid_plus1×1次輪詢、no_bid_plus1×1次輪詢）→ 模擬正確地沒有成交，mid 觸及不算成交。
+- 「mid 碰到限價但沒有真實賣單成交」的測試單：6 張（no_bid_plus1×1次輪詢、at_bid×15次輪詢、bid_plus1×15次輪詢、near_ask×17次輪詢、far_below×4次輪詢、no_bid_plus1×1次輪詢）→ 模擬正確地沒有成交，mid 觸及不算成交。
 - 排隊量的假設：同價位只在有真實成交消耗時才前進，不計撤單，所以 `at_bid` 類案例偏保守。
-- 訂單簿穿價成交：只有輪詢時對手最佳賣價 ≤ 我們限價才算，數量依該檔深度，並先扣掉排在我們前面的買單量；同一批可見流動性只認領一次。
-- 以訂單簿穿價成交的測試單 16 張，輪詢中看到穿價的次數：at_bid×11、bid_plus1×13、near_ask×17、at_bid×15、bid_plus1×15、near_ask×15、far_below×14、at_bid×16、bid_plus1×16、near_ask×17、far_below×15、no_bid_plus1×1、at_bid×13、bid_plus1×14、near_ask×17、far_below×2。
+- 訂單簿穿價不再是成交依據。輪詢中曾看到對手價穿過限價的測試單：at_bid×11、bid_plus1×13、near_ask×17、far_below×3、at_bid×15、bid_plus1×15、near_ask×15、far_below×14、at_bid×16、bid_plus1×16、near_ask×17、far_below×15、no_bid_plus1×1、at_bid×13、bid_plus1×14、near_ask×17、far_below×2；其中無真實成交、模擬也不成交者 at_bid、bid_plus1、near_ask、far_below。
 
 ## 結論與發現的問題
 

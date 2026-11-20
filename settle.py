@@ -56,14 +56,28 @@ def run():
         y = res.get(r["market_slug"])
         if r["result"] != "" or y is None:
             continue
+        t = tickets.get(r["ticket_id"])
+        x = tickets.get(sim.exit_id(t["id"])) if t else None
+        # 結算前強制從掛單時間再抓一次成交（容忍 Data API 延遲）；失敗則本輪不結算該列。
+        if t and t["status"] not in ("settled", "rejected_post_only"):
+            t, ok = sim.rescan_before_settle(t)
+            if not ok:
+                continue
+            tickets[t["id"]] = t
+            write_json(os.path.join(DIRS["tickets"], f"{t['id']}.json"), t)
+        if x and x["status"] not in ("settled", "rejected_post_only", "filled"):
+            x, xok = sim.rescan_before_settle(x)
+            if not xok:
+                continue
+            tickets[x["id"]] = x
+            write_json(os.path.join(DIRS["tickets"], f"{x['id']}.json"), x)
         r["result"] = y
         r["brier_desk"] = round((float(r["fair"]) - y) ** 2, 6) if r["fair"] not in ("", "unavailable") else "unavailable"
         r["brier_market"] = round((float(r["entry_mid"]) - y) ** 2, 6) if r["entry_mid"] not in ("", "unavailable") else "unavailable"
         r["settled_date_taipei"] = day
-        t = tickets.get(r["ticket_id"])
         if t:
             won = (y == 1) == (t["outcome"] == "YES")
-            x = tickets.get(sim.exit_id(t["id"]))  # 中途出場：已賣出部分按出場收入，其餘持有到結算
+            # 中途出場：已賣出部分按出場收入，其餘持有到結算
             sold = x["filled_shares"] if x else 0.0
             proceeds = sim.exit_proceeds(x) if x else 0.0
             held = t["filled_shares"] - sold

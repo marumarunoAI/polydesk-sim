@@ -29,9 +29,21 @@ class SimTest(unittest.TestCase):
         _, created = sim.place("t1", "S1", MKT, "YES", 0.30, 10, 3.0, BOOK)
         self.assertFalse(created)
 
-    def test_maker_only(self):
-        with self.assertRaises(ValueError):
-            sim.place("t2", "S1", MKT, "YES", 0.34, 10, 3.4, BOOK)
+    def test_place_crossing_rejected_post_only(self):
+        t, created = sim.place("t2", "S1", MKT, "YES", 0.34, 10, 3.4, BOOK)
+        self.assertTrue(created)
+        self.assertEqual(t["status"], "rejected_post_only")
+        self.assertEqual(t["filled_shares"], 0)
+        self.assertEqual(t["fee_paid"], 0)
+        self.assertEqual(t["fills"], [])
+        self.assertIn("rejected_post_only", t["reject_reason"])
+        self.assertEqual(t["reject_best_ask"], 0.34)
+        self.assertEqual(t["reject_best_bid"], 0.30)
+        # 拒單後即使有會穿過的成交紀錄，也不成交、不記手續費
+        t = sim.apply_fills(t, [tr("Yes", "SELL", 0.10, 100, t["placed_at"]["epoch"] + 1)], BOOK)
+        self.assertEqual(t["filled_shares"], 0)
+        self.assertEqual(t["status"], "rejected_post_only")
+        self.assertEqual(t["fee_paid"], 0)
 
     def test_mid_touch_alone_no_fill(self):
         book = dict(BOOK, mid=0.30)  # mid 碰到限價，但沒人賣到 0.30
@@ -64,12 +76,16 @@ class SimTest(unittest.TestCase):
         self.assertEqual(t["status"], "filled")
         self.assertEqual(t["filled_shares"], 10)
 
-    def test_book_crossed_fills_by_depth(self):
+    def test_book_cross_without_trades_does_not_fill(self):
+        # 掛單後對手最佳賣價穿過／碰到我們限價，但沒有真實成交 → 不成交、也不拒單
         self.t["queue_ahead"] = 0
         book = {"bids_top5": [{"price": 0.28, "size": 5}],
-                "asks_top5": [{"price": 0.30, "size": 4}, {"price": 0.31, "size": 100}]}
+                "asks_top5": [{"price": 0.29, "size": 40}],
+                "best_bid": 0.28, "best_ask": 0.29}
         t = sim.apply_fills(self.t, [], book)
-        self.assertEqual(t["filled_shares"], 4)
+        self.assertEqual(t["filled_shares"], 0)
+        self.assertEqual(t["status"], "open")
+        self.assertEqual(t["fee_paid"], 0)
 
     def test_no_side_ticket(self):
         t, _ = sim.place("t3", "S2", MKT, "NO", 0.60, 10, 6.0, BOOK)  # NO ask = 1-0.30 = 0.70
@@ -92,29 +108,65 @@ class SimTest(unittest.TestCase):
         self.assertTrue(t["is_test"])
         self.assertNotIn("tt", [x["id"] for x in sim.open_tickets()])
 
-    def test_crossed_depth_not_recounted_each_poll(self):
-        self.t["queue_ahead"] = 0
-        book = {"bids_top5": [{"price": 0.28, "size": 5}],
-                "asks_top5": [{"price": 0.30, "size": 4}, {"price": 0.31, "size": 100}]}
-        t = sim.apply_fills(self.t, [], book)
+    def test_late_trade_still_fills_and_repeat_poll_does_not_double_count(self):
+        # 加強：時間戳在掛單後、較晚才出現在 API 的成交仍計入；重複輪詢不去重失敗
+        a = dict(tr("Yes", "SELL", 0.29, 4, self.t0 + 3), transaction_hash="0xc", token_id="Y")
+        t = sim.apply_fills(self.t, [], BOOK)  # 第一輪 API 還沒有這筆
+        self.assertEqual(t["filled_shares"], 0)
+        t = sim.apply_fills(t, [a], BOOK)
         self.assertEqual(t["filled_shares"], 4)
-        t = sim.apply_fills(t, [], book)  # 同一批流動性還在簿上
-        t = sim.apply_fills(t, [], book)
+        t = sim.apply_fills(t, [a], BOOK)  # 同一筆再出現 → 不重複計
         self.assertEqual(t["filled_shares"], 4)
-        bigger = {"bids_top5": [], "asks_top5": [{"price": 0.30, "size": 7}]}
-        t = sim.apply_fills(t, [], bigger)  # 多出來的 3 才算新的
-        self.assertEqual(t["filled_shares"], 7)
-        t = sim.apply_fills(t, [], {"bids_top5": [], "asks_top5": [{"price": 0.5, "size": 1}]})
-        t = sim.apply_fills(t, [], book)  # 穿價消失後再出現 → 重新認領
-        self.assertEqual(t["filled_shares"], 10)
+        self.assertEqual(t["fee_paid"], 0)
 
-    def test_crossed_depth_respects_queue_ahead(self):
-        t, _ = sim.place("q1", "S1", MKT, "YES", 0.30, 10, 3.0, BOOK)  # 同價排隊 5
-        self.assertEqual(t["queue_ahead"], 5)
-        book = {"bids_top5": [], "asks_top5": [{"price": 0.30, "size": 8}]}
-        t = sim.apply_fills(t, [], book)
-        self.assertEqual(t["filled_shares"], 3)  # 8 − 前面的 5
-        self.assertEqual(t["queue_ahead"], 0)
+    def test_rescan_before_settle_picks_up_late_trade_after_cancel(self):
+        from unittest import mock
+        t = dict(self.t, cancel_at_epoch=self.t0 + 5)
+        later = common.now_utc() + timedelta(seconds=10)
+        t = sim.apply_fills(t, [], BOOK, now=later)
+        self.assertEqual(t["status"], "cancelled")
+        late = dict(tr("Yes", "SELL", 0.20, 10, self.t0 + 2), transaction_hash="0xd", token_id="Y")
+        seen = []
+        def fake(cid, since, **kw):
+            seen.append(since)
+            return [late]
+        with mock.patch.object(sim, "fetch_trades", fake):
+            t2, ok = sim.rescan_before_settle(t, now=later)
+        self.assertTrue(ok)
+        self.assertEqual(seen, [t["placed_at"]["epoch"]])
+        self.assertEqual(t2["filled_shares"], 10)
+        self.assertEqual(t2["status"], "filled")
+
+    def test_rescan_before_settle_fetch_failure_does_not_settle_cancel(self):
+        from unittest import mock
+        t = dict(self.t, cancel_at_epoch=self.t0 + 5)
+        later = common.now_utc() + timedelta(seconds=10)
+        t = sim.apply_fills(t, [], BOOK, now=later)
+        self.assertEqual(t["status"], "cancelled")
+        before = t["last_checked_epoch"]
+        with mock.patch.object(sim, "fetch_trades", side_effect=RuntimeError("boom")):
+            t2, ok = sim.rescan_before_settle(t, now=later)
+        self.assertFalse(ok)
+        self.assertEqual(t2["status"], "cancelled")
+        self.assertEqual(t2["filled_shares"], 0)
+        self.assertEqual(t2["last_checked_epoch"], before)
+
+    def test_check_all_at_cancel_fetches_from_placed_and_applies_late_trade(self):
+        from unittest import mock
+        self.t["cancel_at_epoch"] = self.t0 + 1
+        sim.write_json(sim.ticket_path(self.t["id"]), self.t)
+        late = dict(tr("Yes", "SELL", 0.20, 7, self.t0 + 0.5), transaction_hash="0xe", token_id="Y")
+        seen = []
+        def fake(cid, since, **kw):
+            seen.append(since)
+            return [late]
+        with mock.patch.object(sim, "now_utc", return_value=common.now_utc() + timedelta(seconds=10)):
+            with mock.patch.object(sim, "fetch_trades", fake):
+                out = sim.check_all({})
+        self.assertEqual(seen, [self.t["placed_at"]["epoch"]])
+        self.assertEqual(len(out), 1)
+        self.assertEqual(out[0]["filled_shares"], 7)
+        self.assertIn(out[0]["status"], ("partial", "partial_cancelled"))
 
     def test_trades_after_cancel_time_ignored(self):
         t = dict(self.t, cancel_at_epoch=self.t0 + 5)

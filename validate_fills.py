@@ -86,17 +86,17 @@ def place_tests(picked, end_epoch):
         ]
         for name, outcome, limit in specs:
             tid = f"TEST_{stamp()['utc'].replace(':', '')}_{m['slug'][:40]}_{name}"
-            try:
-                t, _ = sim.place(tid, "VALIDATION", m, outcome, limit, SHARES, round(SHARES * limit, 2),
-                                 b, is_test=True, cancel_at_epoch=end_epoch)
-            except ValueError as e:
-                log(f"skip {name} {m['slug']}: {e}")
-                continue
+            t, _ = sim.place(tid, "VALIDATION", m, outcome, limit, SHARES, round(SHARES * limit, 2),
+                             b, is_test=True, cancel_at_epoch=end_epoch)
             t["case"] = name
             write_json(sim.ticket_path(tid, True), t)
             plans.append(tid)
-            log(f"PLACED {name:13s} {outcome:3s} @{limit} x{SHARES:g} queue_ahead={t['queue_ahead']:g} "
-                f"[{m['slug']}] book bid/ask {bb}/{ba}")
+            if t["status"] == "rejected_post_only":
+                log(f"REJECT {name:13s} {outcome:3s} @{limit} x{SHARES:g} "
+                    f"[{m['slug']}] {t.get('reject_reason')} (best bid {t.get('reject_best_bid')}, best ask {t.get('reject_best_ask')})")
+            else:
+                log(f"PLACED {name:13s} {outcome:3s} @{limit} x{SHARES:g} queue_ahead={t['queue_ahead']:g} "
+                    f"[{m['slug']}] book bid/ask {bb}/{ba}")
     return plans
 
 
@@ -126,7 +126,7 @@ def run(hours, poll, publish_it=True):
         books = board.fetch_books([m["yes_token"] for m in mkts.values()])
         for slug, m in mkts.items():
             try:
-                since = (start.timestamp() - 5) if first else prev_poll - 900
+                since = start.timestamp() - 5
                 trades = sim.fetch_trades(m["condition_id"], since, max_pages=10)
             except Exception as e:
                 log(f"trades fetch failed {slug}: {e}")
@@ -155,12 +155,25 @@ def run(hours, poll, publish_it=True):
         write_json(os.path.join(VDIR, "raw.json"), {"series": series, "trades": {
             c: list(v.values()) for c, v in raw.items()}})
         time.sleep(max(1, poll - (now_utc() - t_poll).total_seconds()))
-    # 收尾：最後一次 apply（觸發撤單），寫報告
+    # 收尾：從掛單時間再抓一次成交（容忍 Data API 延遲），再 apply（觸發撤單），寫報告
+    t_end = now_utc()
+    for slug, m in mkts.items():
+        try:
+            trades = sim.fetch_trades(m["condition_id"], start.timestamp() - 5, max_pages=10)
+        except Exception as e:
+            log(f"trades fetch failed at end {slug}: {e}")
+            continue
+        cb = Counter()
+        for tr in trades:
+            k = sim.trade_key(tr)
+            cb[k] += 1
+            rec = raw[m["condition_id"]].setdefault(k, {"trade": tr, "first_seen": t_end.timestamp(), "n": 0})
+            rec["n"] = max(rec["n"], cb[k])
     for tid in tids:
         t = read_json(sim.ticket_path(tid, True))
         m = mkts[t["slug"]]
         trades = [r["trade"] for r in raw[m["condition_id"]].values() for _ in range(r["n"])]
-        sim.apply_fills(t, trades, {}, now=now_utc())
+        sim.apply_fills(t, trades, {}, now=t_end)
         write_json(sim.ticket_path(tid, True), t)
     import validation_report
     validation_report.write(state, mkts, tids, raw, series)

@@ -1,13 +1,16 @@
 """sim.py — 模擬 maker 限價單（tickets/）與成交判定。不簽名、不送單。
 
-成交規則（不假設以 mid 成交）：
+成交規則（不假設以 mid 成交，只掛 maker / post-only）：
+  建立時若限價會穿過或碰到對手最佳價（買單 L ≥ best ask；賣單經鏡像後同樣判斷），
+  一律拒單 rejected_post_only：不成交、不改用 taker、不記手續費、不自動改價。
+  掛單後訂單簿變動使對手價穿過我們限價，不算成交、也不因此拒單；只認真實成交紀錄。
   我們掛「買 outcome O、限價 L」的 maker 單，只有真實市場有人賣給這個價位才算成交：
-  1) 掛單後的真實成交（Polymarket Data API /v2/trades，taker 側）：
-     taker 賣 O、或 taker 買另一邊（價格換算 1−p），換算價 px：
-       px < L  → 整筆量可成交給我們；
-       px == L → 先扣掉掛單時同價位排在我們前面的量（queue_ahead），剩下的才給我們。
-  2) 目前訂單簿已經有人掛賣 ≤ L（簿子穿過我們的價）→ 依那些檔位的深度成交。
-  成交量上限為剩餘股數，所以可能部分成交。maker 手續費依官方文件 = 0。"""
+    掛單後的真實成交（Polymarket Data API /v2/trades，taker 側）：
+    taker 賣 O、或 taker 買另一邊（價格換算 1−p），換算價 px：
+      px < L  → 整筆量可成交給我們；
+      px == L → 先扣掉掛單時同價位排在我們前面的量（queue_ahead），剩下的才給我們。
+  成交量上限為剩餘股數，所以可能部分成交。maker 手續費依官方文件 = 0。
+  成交紀錄 API 有延遲：一般輪詢重疊視窗 TRADE_LOOKBACK_SEC；撤單／結算前從掛單時間重抓再判定。"""
 import glob
 import os
 
@@ -15,6 +18,9 @@ from common import DIRS, get_json, now_utc, parse_iso, read_json, stamp, write_j
 import fees
 
 DATA_API = "https://data-api.polymarket.com/v2/trades"
+# Data API 成交紀錄延遲實測中位 457 秒、最大 954 秒；一般輪詢重疊至少 1000 秒。
+TRADE_LOOKBACK_SEC = 1200
+TERMINAL = ("filled", "cancelled", "partial_cancelled", "rejected_post_only", "settled")
 CANCEL_BEFORE_H = {"S1": 24, "S2": 24, "S3": 0}  # S1/S2 到期前 24h 撤單；S3 持有到中午
 
 
@@ -35,6 +41,7 @@ def trade_key(tr):
 
 def book_side_for(outcome, yes_book):
     """回傳買 outcome 時「賣方」檔位 [(price, size)]（由便宜到貴）與「同側買方」檔位。"""
+    yes_book = yes_book or {}
     bids = [(l["price"], l["size"]) for l in yes_book.get("bids_top5") or []]
     asks = [(l["price"], l["size"]) for l in yes_book.get("asks_top5") or []]
     if outcome == "YES":
@@ -44,15 +51,42 @@ def book_side_for(outcome, yes_book):
     return no_asks, no_bids
 
 
+def _present(x):
+    return x not in (None, "unavailable", "")
+
+
+def best_bid_ask(outcome, yes_book):
+    """該 outcome 的最佳買／賣價。優先用 yes_book 的 best_*，否則用檔位。"""
+    yes_book = yes_book or {}
+    bb, ba = yes_book.get("best_bid"), yes_book.get("best_ask")
+    if outcome == "YES":
+        bid, ask = (bb if _present(bb) else None), (ba if _present(ba) else None)
+    else:
+        bid = round(1 - ba, 6) if _present(ba) else None
+        ask = round(1 - bb, 6) if _present(bb) else None
+    if bid is None or ask is None:
+        sellers, same = book_side_for(outcome, yes_book)
+        if ask is None and sellers:
+            ask = sellers[0][0]
+        if bid is None and same:
+            bid = max(px for px, _s in same)
+    return bid, ask
+
+
+def would_cross_book(outcome, limit, yes_book):
+    """買單限價 ≥ 對手最佳賣價（穿過或碰到）則 post-only 應拒。回傳 (crosses, best_bid, best_ask)。"""
+    bid, ask = best_bid_ask(outcome, yes_book)
+    crosses = ask is not None and limit + 1e-9 >= ask
+    return crosses, bid, ask
+
+
 def place(tid, strategy, market, outcome, limit, shares, usd, yes_book,
           is_test=False, cancel_at_epoch=None, extra=None):
     """建立 ticket（冪等：同 id 已存在就不重建）。is_test=True 的單不計入績效與風控。"""
     p = ticket_path(tid, is_test)
     if os.path.exists(p):
         return read_json(p), False
-    sellers, same = book_side_for(outcome, yes_book)
-    if sellers and sellers[0][0] <= limit:
-        raise ValueError("limit would cross the book (taker) — maker only")
+    _, same = book_side_for(outcome, yes_book)
     queue = sum(s for px, s in same if abs(px - limit) < 1e-9)
     end = parse_iso(market["end_utc"])
     t = {
@@ -71,6 +105,16 @@ def place(tid, strategy, market, outcome, limit, shares, usd, yes_book,
         "last_checked_epoch": None, "fills": [],
     }
     t.update(extra or {})
+    crosses, bid, ask = would_cross_book(outcome, limit, yes_book)
+    if crosses:
+        # post-only：建立時穿價／碰到對手價就拒單。不改價、不吃單、不記手續費。
+        t["status"] = "rejected_post_only"
+        t["reject_reason"] = (
+            f"rejected_post_only: buy {outcome} limit {limit} >= best ask {ask}")
+        t["reject_best_bid"] = bid
+        t["reject_best_ask"] = ask
+        t["fee_paid"] = 0.0
+        t["filled_shares"] = 0.0
     write_json(p, t)
     return t, True
 
@@ -103,10 +147,11 @@ def trade_px_for(outcome, trade):
     return None
 
 
-def apply_fills(t, trades, yes_book, now=None):
-    """純函式：依成交紀錄與目前訂單簿更新 ticket（可單元測試）。"""
+def apply_fills(t, trades, yes_book=None, now=None):
+    """純函式：只依真實成交紀錄更新 ticket（可單元測試）。
+    yes_book 保留給呼叫端相容，不用來判定成交或拒單（掛單後簿面變動不算成交依據）。"""
     now = now or now_utc()
-    if t["status"] in ("filled", "cancelled"):
+    if t["status"] in TERMINAL:
         return t
     placed = t["placed_at"]["epoch"]
     L = t["limit_price"]
@@ -138,23 +183,10 @@ def apply_fills(t, trades, yes_book, now=None):
             at += float(tr["size"])
     at_ours = max(0.0, at - t["queue_ahead"])
     t["queue_ahead"] = max(0.0, t["queue_ahead"] - at)
-    sellers, _ = book_side_for(t["outcome"], yes_book or {})
-    # 簿深穿價：同一批可見流動性只算一次（crossed_claimed 記已認領量；穿價消失就歸零）。
-    # 與成交紀錄可能是同一筆流動性，保守取兩者較大值而非相加。
-    visible = sum(s for px, s in sellers if px <= L + 1e-9)
-    claimed = t.get("crossed_claimed", 0.0)
-    new_visible = max(0.0, visible - claimed)
-    t["crossed_claimed"] = visible
-    # 排在我們前面的買單（queue_ahead）會先吃掉穿價的賣單，剩下的才輪到我們
-    crossed = max(0.0, new_visible - t["queue_ahead"])
-    t["queue_ahead"] = max(0.0, t["queue_ahead"] - new_visible)
-    trade_ev = through + at_ours
-    got = min(remaining, max(trade_ev, crossed))
+    got = min(remaining, through + at_ours)
     if got > 0:
         t["fills"].append({"at": stamp(now), "shares": round(got, 4), "price": L,
-                           "basis": {"trades_through": through, "trades_at_limit_after_queue": at_ours,
-                                     "book_crossed_depth": crossed}})
-        t["crossed_claimed"] = max(t["crossed_claimed"], 0.0)
+                           "basis": {"trades_through": through, "trades_at_limit_after_queue": at_ours}})
         t["filled_shares"] = round(t["filled_shares"] + got, 4)
         t["fill_cost"] = round(t["fill_cost"] + got * L, 6)
         t["fee_paid"] += fees.maker_fee(got, L)
@@ -177,21 +209,57 @@ def open_tickets():
     return out
 
 
+def fetch_since_epoch(t, now=None, force_from_placed=False):
+    """一律從掛單時間抓起，覆蓋整段掛單生命期（含遲到的成交紀錄）。
+    force_from_placed 保留給呼叫端語意（結算／撤單前強制重掃），回傳值相同。"""
+    return t["placed_at"]["epoch"]
+
+
+def rescan_ticket(t, yes_book=None, now=None, force_from_placed=False):
+    """抓成交並套用 apply_fills。API 失敗則不更新（不推進 last_checked、不撤單）。
+    回傳 (ticket, ok)。yes_book 只為相容保留，不影響成交判定。"""
+    now = now or now_utc()
+    if t["status"] in TERMINAL:
+        return t, True
+    try:
+        since = fetch_since_epoch(t, now, force_from_placed=force_from_placed)
+        trades = fetch_trades(t["condition_id"], since)
+    except Exception as e:
+        t.setdefault("errors", []).append(f"{stamp()['utc']} trades unavailable: {e}")
+        return t, False
+    apply_fills(t, trades, yes_book, now=now)
+    return t, True
+
+
+def rescan_before_settle(t, now=None):
+    """結算（或到期判定未成交）前，強制從掛單時間重抓一次成交再判定。
+    若先前已因到期標成 cancelled／partial_cancelled，先暫時重新打開，讓遲到、
+    但時間戳仍在掛單～撤單窗口內的成交能補上；抓取失敗則恢復原狀態、不更新。"""
+    now = now or now_utc()
+    if t["status"] in ("rejected_post_only", "settled", "filled"):
+        return t, True
+    prev = t["status"]
+    if t["status"] in ("cancelled", "partial_cancelled"):
+        t["status"] = "partial" if t["filled_shares"] > 0 else "open"
+    t2, ok = rescan_ticket(t, None, now=now, force_from_placed=True)
+    if not ok:
+        t2["status"] = prev
+        return t2, False
+    return t2, True
+
+
 def check_all(board_rows):
-    """對每張未完成 ticket 用真實成交 + 目前訂單簿判定成交。board_rows: {slug: row}。
-    成交紀錄 API 失敗 → 這張單本輪完全不更新（不推進 last_checked_epoch、不撤單），下輪再補。"""
+    """對每張未完成 ticket 用真實成交判定。board_rows: {slug: row}（簿面不作為成交依據）。
+    即將到撤單／到期時改從掛單時間重抓。成交紀錄 API 失敗 → 本輪完全不更新。"""
     done = []
+    now = now_utc()
     for t in open_tickets():
-        try:
-            trades = fetch_trades(t["condition_id"], (t["last_checked_epoch"] or t["placed_at"]["epoch"]) - 900)
-        except Exception as e:
-            t.setdefault("errors", []).append(f"{stamp()['utc']} trades unavailable: {e}")
-            write_json(ticket_path(t["id"]), t)
-            continue
-        row = board_rows.get(t["slug"]) or {}
-        apply_fills(t, trades, row.get("yes_book"))
+        expiring = now.timestamp() >= t["cancel_at_epoch"]
+        t, ok = rescan_ticket(t, (board_rows.get(t["slug"]) or {}).get("yes_book"),
+                              now=now, force_from_placed=expiring)
         write_json(ticket_path(t["id"]), t)
-        done.append(t)
+        if ok:
+            done.append(t)
     return done
 
 
@@ -214,8 +282,9 @@ def place_exit(parent, market, yes_book, reason, now=None):
     """對已成交部位掛 maker 賣單（不假設以 mid 成交）。
 
     賣出 outcome O @ S，在統一訂單簿裡等同「買相反 outcome @ 1−S」的 maker 買單，成交判定因此
-    完全重用 apply_fills（真實 taker 成交穿過/等於限價＋排隊，或簿深穿價）。
+    完全重用 apply_fills（真實 taker 成交穿過/等於限價＋排隊）。
     掛價：自家這一側最佳賣價 − 1 tick（不碰最佳買價）；價差只有 1 tick 就掛在最佳賣價排隊。
+    若掛價會穿價，place() 回傳 rejected_post_only，不自動改價。
     回傳 (exit_ticket, created)。"""
     held = parent["filled_shares"]
     if held <= 0:
@@ -233,7 +302,7 @@ def place_exit(parent, market, yes_book, reason, now=None):
     sell = round(round(sell / tick) * tick, 6)
     mirror_outcome = "NO" if parent["outcome"] == "YES" else "YES"
     mirror_limit = round(1 - sell, 6)
-    # 賣單不得先被當成吃單：place() 會檢查鏡像買單是否穿價
+    # 賣單不得先被當成吃單：place() 若穿價會以 rejected_post_only 拒單，不改價
     t, created = place(exit_id(parent["id"]), parent["strategy"], market, mirror_outcome, mirror_limit,
                        held, round(held * mirror_limit, 2), yb,
                        cancel_at_epoch=parse_iso(market["end_utc"]).timestamp(),
