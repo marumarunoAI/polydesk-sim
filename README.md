@@ -79,3 +79,9 @@ python -m unittest discover -s tests
 - S3 tape 否決：資金費率與前一日 ETF 流量同時與方向相反。
 - Kelly 倍數 0.10（`risk_gate.KELLY_MULT`，允許 0.10–0.25）。
 - 「BTC barrier 合計 ≤ 6%」：同資產的觸價與 above 部位合併計（保守）。
+
+
+## 資料源補強（v1.2）
+- 資金費率／OI 取用順序加入 Bitget、Gate、dYdX（見 `docs/data_sources.md`；一律換成每 8h，取第一個可用）。
+- `evidence.global.okx_premarket`：OKX pre_market 永續價格，S4（v2）用，**目前沒有任何策略讀取**。
+- `hl_liq_reference.py` / `run_day.py --hl-liq-ref N`：Hyperliquid 清算價分佈，**僅參考**，不進 `liquidation_clusters`、不是 S1/S2 訊號。

@@ -46,6 +46,13 @@
 - 實測 2026-11-20 18:45–18:46（台北）：`/api/v5/public/instruments?instType=SWAP` **200**，546 檔合約，其中 `ruleType=pre_market` 共 3 檔（MOONSHOT、OPENAI、OURA 的 `-USDT-SWAP`，皆 `state=live`）；逐檔 `/api/v5/market/ticker` **200**，例：OPENAI-USDT-SWAP last 120.69／bid 120.59／ask 120.66（USDT／單位標的，**不是 FDV**，換成 FDV 需要供給量，留給 v2）。
 - 寫入位置：`evidence/latest.json` 的 `global.okx_premarket`（每檔附 `source` URL 與 `fetched_at`；整體標 `reference_only`）。抓不到或單檔失敗寫 unavailable 與原因。**沒有任何策略／風控程式讀這個鍵**（有測試鎖住）。
 
+## Hyperliquid 清算價參考（僅參考，不是訊號）
+- 實測 2026-11-20 18:47–18:50（台北）：leaderboard 檔 https://stats-data.hyperliquid.xyz/Mainnet/leaderboard **200**（約 38 MB）；POST `https://api.hyperliquid.xyz/info`（`metaAndAssetCtxs`、`clearinghouseState`）**200**。前 300 大帳戶共 306 個請求，**遇到 5 次 429**，由退避重試吸收，最終 300/300 成功、0 失敗，耗時 153 秒。
+- 限流：固定最小間隔 0.4 秒、不並行；429／5xx／網路錯誤指數退避（2、4、8…秒，上限 60，尊重 `Retry-After`），每次 429 把間隔 ×1.5（上限 3 秒），成功時慢慢降回；重試 6 次仍失敗才放棄該帳戶（帳戶失敗不影響整體，全部失敗才標 unavailable）。
+- 實測結果（前 300 大帳戶抽樣）：BTC 46 個持倉、名目 $585M（約為 Hyperliquid BTC OI 的 24%），其中 13 個（$41M）是 cross margin 而 `liquidationPx` 為 null；清算價落在現價 ±10% 內的名目只有約 $7M。ETH 34 個持倉、名目 $247M。**遠低於 S1/S2 規則的 $10B 門檻，也只是抽樣**，所以即使有人想用也不夠格。
+- 寫入：`python hl_liq_reference.py [--top N]` → `evidence/hl_liq_reference.json`；或 `python run_day.py --hl-liq-ref N` → `evidence/latest.json` 的 `reference.hl_liquidation_distribution`（預設不抓）。每筆附 `source`、`fetched_at`、`reference_only: true`、涵蓋率 `coverage_of_oi`。
+- **硬規定**：不寫進 `liquidation_clusters`（仍永遠 unavailable → S1/S2 在缺資料時照樣 SKIP）、不經 `strategies` 的清算介面、不是任何訊號；有測試掃描 strategies／risk_gate／quant／sim／exits／gate 的原始碼，出現這份資料的鍵名就失敗。
+
 ## 使用細節
 - **資金費率**取用順序（`strategies.FUNDING_ORDER`）：Binance → OKX → Bitget → Gate → Deribit → Hyperliquid → dYdX，取第一個可用的；**OI** 順序（`OI_ORDER`）：Binance → OKX → Bitget → Gate → Hyperliquid → Deribit → dYdX。所有來源的值都留在 evidence 供對照，每筆帶 `source` URL 與 `fetched_at`。
   換算：OKX 依 `nextFundingTime − fundingTime`；Bitget 依 `fundingRateInterval`；Gate 依 `funding_interval`（秒）；dYdX `nextFundingRate` 為每 1h（×8）；Hyperliquid 為每 1h（×8，存於 `per_8h`）。OI 單位：Bitget／dYdX 為幣；Gate＝`position_size × quanto_multiplier`；Deribit 為 USD（只用於「有沒有 OI」，不跨所加總）。

@@ -96,6 +96,9 @@ def main(argv=None):
     ap.add_argument("--outdir", help="所有輸出（blind/fair/board/evidence/tickets/journal）改放這個資料夾")
     ap.add_argument("--dry-run", action="store_true",
                     help="完整跑一遍但不改動真實的 fair/tickets/journal：先把現有狀態複製到暫存資料夾，結束即刪")
+    ap.add_argument("--hl-liq-ref", type=int, default=0, metavar="N",
+                    help="另外抓 Hyperliquid 前 N 大帳戶的清算價分佈（約 N×0.5 秒，限流＋退避），"
+                         "只寫入 evidence['reference']，不進 liquidation_clusters、不影響任何決策；預設 0＝不抓")
     a = ap.parse_args(argv)
     saved = dict(DIRS)
     tmp = None
@@ -110,7 +113,7 @@ def main(argv=None):
     elif a.outdir:
         set_outdir(os.path.abspath(a.outdir))
     try:
-        return _run()
+        return _run(a.hl_liq_ref)
     finally:
         DIRS.update(saved)
         if tmp:
@@ -118,7 +121,7 @@ def main(argv=None):
             print("[dry-run] 暫存資料夾已刪除")
 
 
-def _run():
+def _run(hl_liq_ref=0):
     t0 = now_utc()
     day = today_tpe(t0)
     print(f"== run_day {day}（台北）開始 {stamp(t0)['taipei']}")
@@ -137,6 +140,9 @@ def _run():
     snap = board.snapshot(markets)                   # 盲算之後才抓價
     board.write_board(snap)
     ev = evidence.collect()
+    if hl_liq_ref > 0:
+        import hl_liq_reference
+        ev.setdefault("reference", {})["hl_liquidation_distribution"] = hl_liq_reference.scan(hl_liq_ref)
     evidence.write(ev)
     print(f"[board] {snap['counts']}  [evidence] 抓取 {ev['fetched_at']['taipei']}")
 
