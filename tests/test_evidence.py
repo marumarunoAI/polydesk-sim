@@ -38,9 +38,16 @@ class EvidenceParseTest(unittest.TestCase):
         self.assertEqual(r["value"], -3)
         self.assertEqual(r["trading_day"], "2026-11-19")
 
-    def test_eth_etf_unavailable(self):
-        with self.assertRaises(RuntimeError):
-            evidence.etf_flow("ETH")
+    def test_etf_flow_uses_farside_not_btcetfdata(self):
+        html = _fx("farside_btc_ok.html")
+        fixed = common.now_utc().replace(year=2026, month=11, day=20, hour=14, minute=35)
+        def boom(*a, **k):
+            raise AssertionError("btcetfdata should not be consulted for etf_flow")
+        with mock.patch.object(evidence, "btc_etf_prev_day", boom),                 mock.patch.object(evidence, "fetch_farside_html", lambda url: html),                 mock.patch("common.now_utc", lambda: fixed):
+            r = evidence.etf_flow("BTC")
+        self.assertEqual(r["trading_day"], "2026-11-19")
+        self.assertEqual(r["unit"], "US$m")
+        self.assertIn("farside.co.uk/btc", r["source"])
 
     def test_macro_no_record_is_empty_not_error(self):
         resp = {"data": None, "status": {"bCodeMessage": [{"code": 1002}]}}
@@ -210,3 +217,123 @@ class OkxPremarketTest(unittest.TestCase):
         for fn in ("strategies.py", "risk_gate.py", "quant.py", "sim.py", "exits.py", "run_day.py"):
             with open(os.path.join(root, fn), encoding="utf-8") as fh:
                 self.assertNotIn("okx_premarket", fh.read(), fn)
+
+
+def _fx(name):
+    import os
+    path = os.path.join(os.path.dirname(__file__), "fixtures", name)
+    with open(path, encoding="utf-8") as fh:
+        return fh.read()
+
+
+def _resp(status, text="", headers=None):
+    r = mock.Mock()
+    r.status_code = status
+    r.text = text
+    r.headers = headers or {}
+    return r
+
+
+class FarsideEtfTest(unittest.TestCase):
+    def _now(self, y=2026, m=11, d=20, h=14, mi=35):
+        return common.now_utc().replace(year=y, month=m, day=d, hour=h, minute=mi)
+
+    def test_success_real_html_ignores_today_dashes(self):
+        """真實頁面：當天（20 Nov）各基金為 '-'，前一交易日 19 Nov 已齊，應可用。"""
+        r = evidence.farside_etf_prev_day("BTC", html=_fx("farside_btc_ok.html"), now=self._now())
+        self.assertEqual(r["value"], -582.3)
+        self.assertEqual(r["trading_day"], "2026-11-19")
+        self.assertEqual(r["data_date"], "2026-11-19")
+        self.assertEqual(r["unit"], "US$m")
+        self.assertEqual(r["source"], evidence.FARSIDE["BTC"])
+        self.assertIn("utc", r["fetched_at"])
+        self.assertIn("taipei", r["fetched_at"])
+        self.assertEqual(r["funds"]["IBIT"], -541.1)
+        self.assertEqual(r["funds"]["BTCW"], 0.3)
+        self.assertEqual(r["funds"]["MSBT"], 49.6)
+        self.assertEqual(len(r["funds"]), 12)
+
+    def test_success_eth_real_html(self):
+        r = evidence.farside_etf_prev_day("ETH", html=_fx("farside_eth_ok.html"), now=self._now())
+        self.assertEqual(r["value"], -131.2)
+        self.assertEqual(r["trading_day"], "2026-11-19")
+        self.assertEqual(r["funds"]["ETHA"], -124.2)
+        self.assertEqual(r["funds"]["ETHE"], -5.2)
+        self.assertEqual(r["source"], evidence.FARSIDE["ETH"])
+
+    def test_passed_page_with_cdn_cgi_script_is_not_challenge(self):
+        """成功頁常帶 /cdn-cgi/challenge-platform/... 腳本，不得因此標 unavailable。"""
+        html = _fx("farside_btc_ok.html").replace(
+            "</head>",
+            "<script src='/cdn-cgi/challenge-platform/scripts/jsd/main.js'></script></head>",
+            1)
+        self.assertFalse(evidence._is_cloudflare_challenge(200, {"server": "cloudflare"}, html))
+        r = evidence.farside_etf_prev_day("BTC", html=html, now=self._now())
+        self.assertEqual(r["value"], -582.3)
+
+    def test_prev_day_dashes_unavailable(self):
+        with self.assertRaises(RuntimeError) as cm:
+            evidence.farside_etf_prev_day(
+                "BTC", html=_fx("farside_btc_prev_day_dash.html"), now=self._now())
+        msg = str(cm.exception)
+        self.assertIn("2026-11-19", msg)
+        self.assertIn("IBIT", msg)
+        self.assertIn("Total", msg)
+
+    def test_http_403_unavailable(self):
+        with mock.patch.object(evidence._S, "get", lambda *a, **k: _resp(403, "Forbidden")):
+            with self.assertRaises(RuntimeError) as cm:
+                evidence.fetch_farside_html(evidence.FARSIDE["BTC"])
+        self.assertIn("403", str(cm.exception))
+        self.assertIn("Cloudflare", str(cm.exception))
+
+    def test_challenge_page_unavailable(self):
+        html = _fx("farside_challenge.html")
+        with self.assertRaises(RuntimeError) as cm:
+            evidence.farside_etf_prev_day("BTC", html=html, now=self._now())
+        self.assertIn("challenge", str(cm.exception).lower())
+        with mock.patch.object(evidence._S, "get",
+                               lambda *a, **k: _resp(403, html, {"cf-mitigated": "challenge"})):
+            with self.assertRaises(RuntimeError) as cm:
+                evidence.etf_flow("ETH")
+        self.assertIn("403", str(cm.exception))
+
+    def test_non_200_unavailable(self):
+        with mock.patch.object(evidence._S, "get", lambda *a, **k: _resp(503, "nope")):
+            with self.assertRaises(RuntimeError) as cm:
+                evidence.fetch_farside_html(evidence.FARSIDE["ETH"])
+        self.assertIn("503", str(cm.exception))
+
+    def test_parentheses_negative_and_thousands(self):
+        self.assertEqual(evidence.parse_farside_number("(541.1)"), ("value", -541.1))
+        self.assertEqual(evidence.parse_farside_number("(1,023.4)"), ("value", -1023.4))
+        self.assertEqual(evidence.parse_farside_number("1,119.9"), ("value", 1119.9))
+        self.assertEqual(evidence.parse_farside_number("-"), ("dash", None))
+        self.assertEqual(evidence.parse_farside_number(""), ("dash", None))
+        now = self._now(d=19, h=10, mi=0)  # 19 Nov 10:00 UTC = 05:00 ET, prev=18 Nov
+        r = evidence.farside_etf_prev_day("BTC", html=_fx("farside_missing_cell.html"), now=now)
+        self.assertEqual(r["value"], -9.5)
+        self.assertEqual(r["funds"], {"IBIT": -12.5, "FBTC": 3.0})
+
+    def test_missing_total_column(self):
+        with self.assertRaises(RuntimeError) as cm:
+            evidence.farside_etf_prev_day("BTC", html=_fx("farside_missing_total.html"), now=self._now())
+        self.assertIn("Total", str(cm.exception))
+
+    def test_missing_cell_on_prev_day(self):
+        with self.assertRaises(RuntimeError) as cm:
+            evidence.farside_etf_prev_day("BTC", html=_fx("farside_missing_cell.html"), now=self._now())
+        self.assertIn("Total: missing cell", str(cm.exception))
+
+    def test_collect_records_farside_reason_on_failure(self):
+        def boom(*a, **k):
+            raise RuntimeError("HTTP 403 Cloudflare challenge/block")
+        with mock.patch.object(evidence, "bitget", boom), mock.patch.object(evidence, "gate", boom),                 mock.patch.object(evidence, "dydx", boom),                 mock.patch.object(evidence, "binance_funding", boom), mock.patch.object(evidence, "binance_oi", boom),                 mock.patch.object(evidence, "okx", boom), mock.patch.object(evidence, "deribit_perp", boom),                 mock.patch.object(evidence, "hyperliquid", boom), mock.patch.object(evidence, "deribit_dvol", boom),                 mock.patch.object(evidence, "etf_flow", boom), mock.patch.object(evidence, "macro_events", boom),                 mock.patch.object(evidence, "fomc_decision_days", lambda: []):
+            ev = evidence.collect()
+        btc = ev["assets"]["BTC"]["etf_flow_prev_day"]
+        eth = ev["assets"]["ETH"]["etf_flow_prev_day"]
+        self.assertEqual(btc["value"], "unavailable")
+        self.assertEqual(eth["value"], "unavailable")
+        self.assertIn("403", btc["reason"])
+        self.assertIn("farside.co.uk/btc", btc["source"])
+        self.assertIn("farside.co.uk/eth", eth["source"])

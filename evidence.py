@@ -2,6 +2,7 @@
 抓不到就寫 unavailable 與原因（依 DESK_RULES 第 6 條，用到它的交易會 SKIP）。
 evidence/ 只准經 gate.read_evidence() 讀。"""
 import os
+import re
 
 from common import (DIRS, UNAVAILABLE, _S, get_json, http_json, stamp,
                     write_json)
@@ -10,8 +11,11 @@ from quant import fomc_decision_days, FOMC_URL, DERIBIT
 ASSETS = ("BTC", "ETH")
 BFUT = "https://fapi.binance.com/fapi/v1"
 HL = "https://api.hyperliquid.xyz/info"
-FARSIDE = {"BTC": "https://farside.co.uk/bitcoin-etf-flow-all-data/",
-           "ETH": "https://farside.co.uk/ethereum-etf-flow-all-data/"}
+FARSIDE = {"BTC": "https://farside.co.uk/btc/",
+           "ETH": "https://farside.co.uk/eth/"}
+# 一般瀏覽器 UA（box 實測 200；polydesk-sim 預設 UA 可能被擋）。不繞過 Cloudflare。
+FARSIDE_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+              "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
 
 
 def item(value, source, unit=None, **extra):
@@ -220,17 +224,185 @@ def deribit_dvol(asset):
 
 
 def etf_flow(asset):
-    if asset == "BTC":
-        return btc_etf_prev_day()
-    raise RuntimeError("ETH 現貨 ETF 流量：Farside 403（Cloudflare）、SoSoValue 403，找不到免 key 且不被擋的公開來源")
+    """前一美東交易日現貨 ETF 淨流量。唯一來源是 Farside（US$m）。
+    不回退 btcetfdata（單位不同，避免兩來源衝突時悄悄選一個）。"""
+    return farside_etf_prev_day(asset)
 
 
-def farside(asset):  # 保留作為紀錄：Farside 目前被 Cloudflare 擋（403），不嘗試繞過
-    url = FARSIDE[asset]
-    r = _S.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
-    if r.status_code != 200 or "Just a moment" in r.text[:2000]:
-        raise RuntimeError(f"HTTP {r.status_code}（Cloudflare 擋自動抓取）")
-    raise RuntimeError("頁面格式未解析（尚未實作表格解析）")
+_MON = {m: i for i, m in enumerate(
+    "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(), 1)}
+_DASH = {"", "-", "–", "—", "−"}
+
+
+def prev_us_trading_day(now=None):
+    """前一個美東週一到週五（不含美國假日；表上沒有該日則由呼叫端標 unavailable）。"""
+    from datetime import timedelta
+    from zoneinfo import ZoneInfo
+    from common import now_utc
+    et = (now or now_utc()).astimezone(ZoneInfo("America/New_York")).date()
+    prev = et - timedelta(days=1)
+    while prev.weekday() >= 5:
+        prev -= timedelta(days=1)
+    return prev
+
+
+def _strip_html(cell):
+    s = re.sub(r"<[^>]+>", "", cell or "")
+    s = s.replace("\xa0", " ").replace("&nbsp;", " ")
+    from html import unescape
+    s = unescape(s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def parse_farside_date(text):
+    m = re.match(r"^(\d{1,2}) ([A-Za-z]{3}) (20\d{2})$", (text or "").strip())
+    if not m or m.group(2) not in _MON:
+        return None
+    from datetime import date
+    return date(int(m.group(3)), _MON[m.group(2)], int(m.group(1)))
+
+
+def parse_farside_number(text):
+    """Farside US$m 儲存格：括號為負、逗號為千分位；'-'／空值代表尚未公布。"""
+    t = (text or "").strip().replace("\xa0", " ").replace(",", "").replace("*", "").strip()
+    if t in _DASH:
+        return "dash", None
+    neg = len(t) >= 2 and t[0] == "(" and t[-1] == ")"
+    if neg:
+        t = t[1:-1].strip()
+    try:
+        val = float(t)
+    except ValueError:
+        return "bad", None
+    return "value", -val if neg else val
+
+
+def _is_cloudflare_challenge(status, headers, text):
+    """辨識 Cloudflare 驗證頁，不要把已通過的頁面上常見的 /cdn-cgi/challenge-platform 腳本誤判成 challenge。"""
+    h = {str(k).lower(): str(v) for k, v in (headers or {}).items()}
+    if h.get("cf-mitigated", "").lower() == "challenge":
+        return True
+    head = text or ""
+    if re.search(r"<title[^>]*>\s*Just a moment", head[:8000], re.I):
+        return True
+    if re.search(r"just a moment\.\.\.", head[:8000], re.I):
+        return True
+    if "_cf_chl_opt" in head or "Enable JavaScript and cookies to continue" in head:
+        return True
+    return False
+
+
+def fetch_farside_html(url):
+    """GET Farside 公開頁。非 200、或 Cloudflare challenge，一律失敗（不重試 403、不繞過）。"""
+    r = _S.get(url, timeout=30, headers={
+        "User-Agent": FARSIDE_UA,
+        "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+    })
+    text = r.text or ""
+    challenge = _is_cloudflare_challenge(r.status_code, r.headers, text)
+    if r.status_code != 200:
+        if challenge or r.status_code == 403:
+            raise RuntimeError(f"HTTP {r.status_code} Cloudflare challenge/block ({url})")
+        raise RuntimeError(f"HTTP {r.status_code} ({url})")
+    if challenge:
+        raise RuntimeError(f"HTTP 200 but Cloudflare challenge page ({url})")
+    return text
+
+
+def parse_farside_flow_table(html):
+    """解析 Farside <table class="etf">：日期列、各基金、Total。回傳 (funds, dated_rows)。"""
+    if not html or not html.strip():
+        raise RuntimeError("Farside 頁面為空，無法解析")
+    m = re.search(r'<table[^>]*class="[^"]*\betf\b[^"]*"[^>]*>[\s\S]*?</table>', html, re.I)
+    if not m:
+        m = re.search(r"<table[^>]*>[\s\S]*?</table>", html, re.I)
+    if not m:
+        raise RuntimeError("Farside 頁面找不到資料表")
+    table = m.group(0)
+    raw_rows = []
+    for tr in re.findall(r"<tr[^>]*>([\s\S]*?)</tr>", table, re.I):
+        cells = [_strip_html(c) for c in re.findall(r"<t[dh][^>]*>([\s\S]*?)</t[dh]>", tr, re.I)]
+        if any(cells):
+            raw_rows.append(cells)
+    if not raw_rows:
+        raise RuntimeError("Farside 資料表沒有列")
+
+    ticker_re = re.compile(r"^[A-Z]{2,5}$")
+    total_row = next((r for r in raw_rows if any(c.lower() == "total" for c in r)), None)
+    ticker_row = next((r for r in raw_rows if sum(1 for c in r if ticker_re.match(c)) >= 2), None)
+    if not ticker_row or not total_row:
+        raise RuntimeError("Farside 資料表缺少基金欄或 Total 欄")
+    try:
+        total_idx = next(i for i, c in enumerate(total_row) if c.lower() == "total")
+    except StopIteration:
+        raise RuntimeError("Farside 資料表缺少 Total 欄")
+    funds = [(i, c) for i, c in enumerate(ticker_row) if ticker_re.match(c)]
+    if not funds:
+        raise RuntimeError("Farside 資料表沒有基金代號")
+    if total_idx in {i for i, _ in funds}:
+        raise RuntimeError("Farside 資料表 Total 欄與基金欄重疊")
+    fund_names = [n for _, n in funds]
+
+    dated = {}
+    for r in raw_rows:
+        if not r:
+            continue
+        d = parse_farside_date(r[0])
+        if d is None:
+            continue
+        dated[d] = r
+    if not dated:
+        raise RuntimeError("Farside 資料表沒有日期列")
+    return fund_names, funds, total_idx, dated
+
+
+def farside_etf_prev_day(asset, html=None, now=None, url=None):
+    """前一美東交易日 Farside ETF 淨流量（US$m）。
+    403／challenge／非 200／解析失敗／該日為 '-' 或基金未全數更新 → raise（collect 記 unavailable）。"""
+    if asset not in FARSIDE:
+        raise RuntimeError(f"不支援的資產 {asset}")
+    url = url or FARSIDE[asset]
+    if html is None:
+        html = fetch_farside_html(url)
+    elif _is_cloudflare_challenge(200, {}, html):
+        raise RuntimeError(f"Cloudflare challenge page ({url})")
+    fund_names, fund_cols, total_idx, dated = parse_farside_flow_table(html)
+    prev = prev_us_trading_day(now)
+    if prev not in dated:
+        have = ", ".join(sorted(d.isoformat() for d in dated)[-5:])
+        raise RuntimeError(f"前一交易日 {prev.isoformat()} 不在 Farside 表中（最近日期：{have}）")
+    row = dated[prev]
+    missing = []
+    funds = {}
+    for i, name in fund_cols:
+        if i >= len(row):
+            missing.append(f"{name}: missing cell")
+            continue
+        kind, val = parse_farside_number(row[i])
+        if kind != "value":
+            missing.append(f"{name}: {row[i] or 'empty'}")
+        else:
+            funds[name] = val
+    if total_idx >= len(row):
+        missing.append("Total: missing cell")
+        total = None
+    else:
+        kind, total = parse_farside_number(row[total_idx])
+        if kind != "value":
+            missing.append(f"Total: {row[total_idx] or 'empty'}")
+            total = None
+    if missing:
+        raise RuntimeError(
+            f"前一交易日 {prev.isoformat()} 尚未全數更新或無值（{', '.join(missing)}）")
+    return item(total, url, "US$m", trading_day=prev.isoformat(),
+                data_date=prev.isoformat(), funds=funds, fund_order=fund_names,
+                note="Farside 公開頁表格，括號為負值；只取前一美東交易日且各基金與 Total 皆已更新的列")
+
+
+def farside(asset, **kw):
+    """向後相容名稱：等同 farside_etf_prev_day。"""
+    return farside_etf_prev_day(asset, **kw)
 
 
 def collect():
@@ -265,7 +437,7 @@ def collect():
             "deribit_funding": der_f, "deribit_oi": der_o,
             **extra,
             "deribit_dvol": _try(lambda: deribit_dvol(a), DERIBIT),
-            "etf_flow_prev_day": _try(lambda: etf_flow(a), BTCETF),
+            "etf_flow_prev_day": _try(lambda: etf_flow(a), FARSIDE[a]),
             "liquidation_clusters": na("none", "沒有免費的清算熱力圖來源（文章用 Minara 付費工具）"),
             "exchange_flows": na("none", "沒有免費的交易所流向來源"),
         }

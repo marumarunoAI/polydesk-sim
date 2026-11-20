@@ -65,7 +65,7 @@ python -m unittest discover -s tests
 | Hyperliquid 資金費率、OI | `api.hyperliquid.xyz/info` | OK |
 | 隱含波動率 | Deribit DVOL | OK |
 | FOMC 日程 | federalreserve.gov | OK |
-| ETF 流量 | Farside | Cloudflare 擋自動抓取（403）→ unavailable |
+| ETF 流量 | Farside `https://farside.co.uk/btc/`、`/eth/`（box，瀏覽器 UA） | 前一美東交易日 US$m；403／challenge／該日未齊 → unavailable（不回退） |
 | 總經發布日程 | BLS | 403 → unavailable |
 | 清算地圖、交易所流向、盤前價 | 無免費來源 | unavailable |
 

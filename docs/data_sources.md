@@ -25,13 +25,13 @@
 | Bybit | https://api.bybit.com/v5/market/tickers（及 api.bytick.com） | **403**（CloudFront 地區封鎖） | 否 |
 | Coinbase International | https://api.international.coinbase.com/… | 301（Cloudflare 轉址，未再追） | 否 |
 | Deribit 隱含波動率 DVOL | https://www.deribit.com/api/v2/public/get_volatility_index_data | **200**（BTC 0.49、ETH 0.62） | 是（quant.py、evidence） |
-| ETF 流量：Farside | https://farside.co.uk/bitcoin-etf-flow-all-data/ | **403**（Cloudflare 驗證頁） | 否 |
+| **ETF 流量：Farside（BTC／ETH）** | https://farside.co.uk/btc/、https://farside.co.uk/eth/ | **從探測用 box 以一般瀏覽器 UA 的 HTTP GET 可 200**（公開 HTML 表格，單位 US$m）。同一 IP 若遇到 403／Cloudflare challenge 則 unavailable。日本 VPS 實測為 403 challenge，見 `docs/jp_vps_probe.md`。 | **是（正式來源，見下）** |
 | ETF 流量：SoSoValue | https://sosovalue.com/…、api.sosovalue.xyz、gw.sosovalue.com | **403**（Cloudflare） | 否 |
 | ETF 流量：CoinGlass | https://open-api.coinglass.com/public/v2/… | 500（需 key） | 否 |
 | ETF 流量：CryptoQuant／ARK 官網 | cryptoquant.com、ark-funds.com | 403 | 否 |
 | ETF 流量：DefiLlama | https://api.llama.fi/etfs | 404；pro-api 需 key | 否 |
-| **BTC ETF 流量：btcetfdata.com** | https://btcetfdata.com/api/v1/current | **200**，免 key，彙整 9 檔 issuer 官網的持倉變化（BTC 單位） | **是，僅 BTC，嚴格模式（見下）** |
-| ETH ETF 流量 | （找不到免 key 且不被擋的來源；ethetfdata.com 連線失敗） | 無 | 否 → unavailable |
+| BTC ETF 流量：btcetfdata.com | https://btcetfdata.com/api/v1/current | **200**，免 key，彙整 issuer 持倉變化（單位 BTC，與 Farside US$m 不同） | **否**（函式 `btc_etf_prev_day()` 仍保留，但不寫入 `etf_flow_prev_day`、不作回退，避免兩來源衝突時悄悄選一個） |
+| ETH ETF 流量 | 同 Farside `https://farside.co.uk/eth/` | 與 BTC 同一套抓取與嚴格規則 | **是（Farside）** |
 | FOMC 日程 | https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm | 200 | 是（解析決議日） |
 | BLS 發布日程頁／ics | https://www.bls.gov/schedule/… | **403** | 否 |
 | BLS Public Data API | https://api.bls.gov/publicAPI/v2/timeseries/data/… | 200，但只有「已公布數據」，沒有發布日程 | 否 |
@@ -57,6 +57,7 @@
 - **資金費率**取用順序（`strategies.FUNDING_ORDER`）：Binance → OKX → Bitget → Gate → Deribit → Hyperliquid → dYdX，取第一個可用的；**OI** 順序（`OI_ORDER`）：Binance → OKX → Bitget → Gate → Hyperliquid → Deribit → dYdX。所有來源的值都留在 evidence 供對照，每筆帶 `source` URL 與 `fetched_at`。
   換算：OKX 依 `nextFundingTime − fundingTime`；Bitget 依 `fundingRateInterval`；Gate 依 `funding_interval`（秒）；dYdX `nextFundingRate` 為每 1h（×8）；Hyperliquid 為每 1h（×8，存於 `per_8h`）。OI 單位：Bitget／dYdX 為幣；Gate＝`position_size × quanto_multiplier`；Deribit 為 USD（只用於「有沒有 OI」，不跨所加總）。
   注意：本機（box）對 Binance fapi 是 451，所以實際上第一個可用多半是 OKX；Bitget／Gate／dYdX 是 OKX 也掛掉時的備援。都沒有才 unavailable（規則 6 → SKIP）。
-- **BTC ETF 流量（嚴格模式）**：btcetfdata.com 的各檔基金 `dt`（issuer 公布日）常常不同步。程式只在 **9 檔全部 dt = 前一個美東交易日且無 error** 時才輸出加總，否則 unavailable 並列出落後基金。這是第三方彙整、單位 BTC，不等於 Farside 的 USD 淨流量；只用於判斷方向（正負）。實測 17:5x 時 FBTC、BITB、HODL 等仍停在 11/18，所以當下是 unavailable。美國假日時 dt 對不上也會 unavailable（保守）。
+- **ETF 流量（Farside，正式來源）**：從本環境（box）用 `requests` 帶一般瀏覽器 UA 讀 https://farside.co.uk/btc/ 與 https://farside.co.uk/eth/（不走 VPS、不裝瀏覽器、不用代理或替代來源）。`run_day` 每次 collect 各抓一次，不另建定時任務。解析公開表格的日期、各基金、Total，單位 US$m；括號為負值，`-` 為無值。只輸出**前一個美東交易日**（週一到週五；美國假日若表上無該日則 unavailable）且**該列各基金與 Total 皆已是數字**的 Total。遇到 HTTP 非 200、Cloudflare challenge、解析失敗、該列為 `-` 或基金未全數更新，就寫 unavailable 與原因（規則 6 → SKIP），**不回退**其他來源。每筆帶 `source` URL、`trading_day`／`data_date`、`fetched_at`（UTC 與台北）。S3 tape 只看正負方向。
+- **btcetfdata.com（不再作為 tape 來源）**：先前僅 BTC、單位 BTC、嚴格要求 9 檔 `dt` 對齊前一美東交易日。函式仍在，但 `etf_flow()`／`etf_flow_prev_day` 不再呼叫它，以免與 Farside 數字（單位不同）衝突時悄悄選一個。
 - **總經事件**：Nasdaq 端點屬非正式文件的公開端點，可能改版；回傳 `No record found`（code 1002）視為當天無事件，其他異常視為 unavailable。關鍵字：CPI、PPI、Nonfarm/payroll、unemployment rate、PCE、GDP、FOMC、retail sales、ISM、jobless claims（排除 speaks、GDPNow、Dallas Fed）。
-- **S3 對 tape 的需求**：funding、OI、ETF 前一日流量、總經日程，四項都要有；ETH 因為沒有 ETF 流量來源，S3 的 ETH 部分會一直 SKIP。
+- **S3 對 tape 的需求**：funding、OI、ETF 前一日流量、總經日程，四項都要有；BTC 與 ETH 的 ETF 都來自 Farside，缺資料時該資產的 S3 依規則 6 SKIP。
