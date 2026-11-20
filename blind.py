@@ -6,7 +6,7 @@ import os
 from common import DIRS, read_json, stamp, write_json
 
 ALLOWED = ("slug", "market_id", "condition_id", "question", "kind", "asset",
-           "direction", "level", "rules", "resolution_source", "end_utc",
+           "direction", "level", "rules", "resolution_source", "start_utc", "end_utc",
            "end_taipei", "event_slug", "event_title", "yes_token", "no_token",
            "tick_size", "min_order_size", "tags")
 PRICE_WORDS = ("price", "bid", "ask", "mid", "volume", "liquidity", "spread",

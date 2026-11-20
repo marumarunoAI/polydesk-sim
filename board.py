@@ -125,6 +125,7 @@ def scan_markets():
                 "level": level,
                 "rules": m.get("description") or UNAVAILABLE,
                 "resolution_source": resolution_source(m, e),
+                "start_utc": m.get("startDate") or UNAVAILABLE,
                 "end_utc": iso_utc(end),
                 "end_taipei": iso_tpe(end),
                 "yes_token": tok.get("yes", UNAVAILABLE),

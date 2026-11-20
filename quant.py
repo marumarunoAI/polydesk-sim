@@ -57,6 +57,28 @@ def market_inputs(asset):
             "ts": stamp()}
 
 
+_EXT = {}
+
+
+def extremes_since(asset, start_dt, now):
+    """窗口開始（市場上架時間）至今 Binance 最高/最低價；超過 41 天改用日 K。"""
+    ck = (asset, int(start_dt.timestamp() // 3600))
+    if ck not in _EXT:
+        _EXT[ck] = _extremes(asset, start_dt, now)
+    return _EXT[ck]
+
+
+def _extremes(asset, start_dt, now):
+    start_ms = int(start_dt.timestamp() * 1000)
+    hours = (now - start_dt).total_seconds() / 3600
+    interval, limit = ("1h", min(1000, int(hours) + 2)) if hours <= 990 else ("1d", 1000)
+    rows = get_json(f"{BINANCE}/klines", params={"symbol": SYMBOL[asset], "interval": interval,
+                                                  "startTime": start_ms, "limit": limit})
+    if not rows:
+        return None
+    return max(float(r[2]) for r in rows), min(float(r[3]) for r in rows)
+
+
 def deribit_iv(asset):
     end = int(now_utc().timestamp() * 1000)
     d = get_json(DERIBIT, params={"currency": asset, "resolution": 3600,
@@ -128,6 +150,17 @@ def price_one(b, inp, iv, fomc, now):
         fair = UNAVAILABLE
     elif b["kind"] == "reach":
         fair = touch_prob(inp["spot"], b["level"], sigma, T, b["direction"])
+        start = parse_iso(b.get("start_utc")) if b.get("start_utc") not in (None, UNAVAILABLE) else None
+        if start is None:
+            missing.append("window_start")
+        else:
+            try:
+                hi, lo = extremes_since(b["asset"], start, now)
+                if (b["direction"] == "up" and hi >= b["level"]) or \
+                        (b["direction"] == "down" and lo <= b["level"]):
+                    fair = 1.0  # 窗口內已觸價（市場可能尚未結算）
+            except Exception:
+                missing.append("window_extremes")
     else:
         fair = above_prob(inp["spot"], b["level"], sigma, T)
     br, n = base_rate(inp["daily"], inp["spot"], b["level"], T * 365, b["kind"], b["direction"])
