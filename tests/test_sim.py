@@ -65,6 +65,7 @@ class SimTest(unittest.TestCase):
         self.assertEqual(t["filled_shares"], 10)
 
     def test_book_crossed_fills_by_depth(self):
+        self.t["queue_ahead"] = 0
         book = {"bids_top5": [{"price": 0.28, "size": 5}],
                 "asks_top5": [{"price": 0.30, "size": 4}, {"price": 0.31, "size": 100}]}
         t = sim.apply_fills(self.t, [], book)
@@ -92,6 +93,7 @@ class SimTest(unittest.TestCase):
         self.assertNotIn("tt", [x["id"] for x in sim.open_tickets()])
 
     def test_crossed_depth_not_recounted_each_poll(self):
+        self.t["queue_ahead"] = 0
         book = {"bids_top5": [{"price": 0.28, "size": 5}],
                 "asks_top5": [{"price": 0.30, "size": 4}, {"price": 0.31, "size": 100}]}
         t = sim.apply_fills(self.t, [], book)

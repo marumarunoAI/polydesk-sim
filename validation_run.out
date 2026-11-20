@@ -1,0 +1,23 @@
+2026-11-20T17:58:47+08:00 候選 43 個，選中 4 個：ethereum-above-1700-on-november-20-2026(84 trades/3h); bitcoin-above-62k-on-november-20-2026(49 trades/3h); bitcoin-above-60k-on-november-21-2026(27 trades/3h); will-ethereum-dip-to-1650-on-november-20-2026(19 trades/3h)
+2026-11-20T17:58:47+08:00 PLACED at_bid        YES @0.866 x10 queue_ahead=19.99 [ethereum-above-1700-on-november-20-2026] book bid/ask 0.866/0.875
+2026-11-20T17:58:47+08:00 PLACED bid_plus1     YES @0.867 x10 queue_ahead=0 [ethereum-above-1700-on-november-20-2026] book bid/ask 0.866/0.875
+2026-11-20T17:58:47+08:00 PLACED near_ask      YES @0.874 x10 queue_ahead=0 [ethereum-above-1700-on-november-20-2026] book bid/ask 0.866/0.875
+2026-11-20T17:58:47+08:00 PLACED far_below     YES @0.861 x10 queue_ahead=0 [ethereum-above-1700-on-november-20-2026] book bid/ask 0.866/0.875
+2026-11-20T17:58:47+08:00 PLACED no_bid_plus1  NO  @0.126 x10 queue_ahead=0 [ethereum-above-1700-on-november-20-2026] book bid/ask 0.866/0.875
+2026-11-20T17:58:47+08:00 PLACED at_bid        YES @0.386 x10 queue_ahead=20 [bitcoin-above-62k-on-november-20-2026] book bid/ask 0.386/0.397
+2026-11-20T17:58:47+08:00 PLACED bid_plus1     YES @0.387 x10 queue_ahead=0 [bitcoin-above-62k-on-november-20-2026] book bid/ask 0.386/0.397
+2026-11-20T17:58:47+08:00 PLACED near_ask      YES @0.396 x10 queue_ahead=0 [bitcoin-above-62k-on-november-20-2026] book bid/ask 0.386/0.397
+2026-11-20T17:58:47+08:00 PLACED far_below     YES @0.381 x10 queue_ahead=219 [bitcoin-above-62k-on-november-20-2026] book bid/ask 0.386/0.397
+2026-11-20T17:58:47+08:00 PLACED no_bid_plus1  NO  @0.604 x10 queue_ahead=0 [bitcoin-above-62k-on-november-20-2026] book bid/ask 0.386/0.397
+2026-11-20T17:58:47+08:00 PLACED at_bid        YES @0.822 x10 queue_ahead=228 [bitcoin-above-60k-on-november-21-2026] book bid/ask 0.822/0.834
+2026-11-20T17:58:47+08:00 PLACED bid_plus1     YES @0.823 x10 queue_ahead=0 [bitcoin-above-60k-on-november-21-2026] book bid/ask 0.822/0.834
+2026-11-20T17:58:47+08:00 PLACED near_ask      YES @0.833 x10 queue_ahead=0 [bitcoin-above-60k-on-november-21-2026] book bid/ask 0.822/0.834
+2026-11-20T17:58:47+08:00 PLACED far_below     YES @0.817 x10 queue_ahead=0 [bitcoin-above-60k-on-november-21-2026] book bid/ask 0.822/0.834
+2026-11-20T17:58:47+08:00 PLACED no_bid_plus1  NO  @0.167 x10 queue_ahead=0 [bitcoin-above-60k-on-november-21-2026] book bid/ask 0.822/0.834
+2026-11-20T17:58:47+08:00 PLACED at_bid        YES @0.13 x10 queue_ahead=901 [will-ethereum-dip-to-1650-on-november-20-2026] book bid/ask 0.13/0.17
+2026-11-20T17:58:47+08:00 PLACED bid_plus1     YES @0.14 x10 queue_ahead=0 [will-ethereum-dip-to-1650-on-november-20-2026] book bid/ask 0.13/0.17
+2026-11-20T17:58:47+08:00 PLACED near_ask      YES @0.16 x10 queue_ahead=0 [will-ethereum-dip-to-1650-on-november-20-2026] book bid/ask 0.13/0.17
+2026-11-20T17:58:47+08:00 PLACED far_below     YES @0.08 x10 queue_ahead=0 [will-ethereum-dip-to-1650-on-november-20-2026] book bid/ask 0.13/0.17
+2026-11-20T17:58:47+08:00 PLACED no_bid_plus1  NO  @0.84 x10 queue_ahead=0 [will-ethereum-dip-to-1650-on-november-20-2026] book bid/ask 0.13/0.17
+2026-11-20T17:58:47+08:00 驗證開始 2026-11-20T17:58:42+08:00，預計結束 2026-11-20T20:58:42+08:00（台北）
+2026-11-20T17:58:47+08:00 SIM FILL near_ask YES@0.396 +10 (filled) [bitcoin-above-62k-on-november-20-2026] basis={'trades_through': 0.0, 'trades_at_limit_after_queue': 0.0, 'book_crossed_depth': 1061.0}
