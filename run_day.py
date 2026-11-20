@@ -7,7 +7,7 @@ import collections
 import os
 import sys
 
-from common import DIRS, UNAVAILABLE, now_utc, read_json, stamp, today_tpe
+from common import DIRS, ROOT, UNAVAILABLE, now_utc, read_json, stamp, today_tpe
 import blind
 import board
 import evidence
@@ -88,6 +88,55 @@ def set_outdir(outdir):
         os.makedirs(DIRS[k], exist_ok=True)
 
 
+STATE_DIRS = ("journal", "fair", "tickets")   # 正式紀錄；tickets/test/ 由 .gitignore 排除
+
+
+def commit_state(day, repo=None, push=True):
+    """把正式紀錄（journal/fair/tickets）commit 並 push 到 main。
+    訊息固定 'run_day YYYY-MM-DD'；沒有變化就不產生空 commit；push 失敗只記一行警告，不中斷。
+    回傳 'committed' | 'nochange' | 'error'。"""
+    import subprocess
+    repo = repo or ROOT
+
+    def git(*args):
+        return subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True, timeout=120)
+    try:
+        if git("rev-parse", "--is-inside-work-tree").stdout.strip() != "true":
+            print("[git] 警告：不是 git 工作目錄，略過 commit")
+            return "error"
+        r = git("add", "--", *STATE_DIRS)
+        if r.returncode != 0:
+            print(f"[git] 警告：git add 失敗：{r.stderr.strip()[-150:]}")
+            return "error"
+        changed = git("diff", "--cached", "--name-only", "-z", "--", *STATE_DIRS).stdout.split("\0")
+        changed = [p for p in changed if p]
+        if not changed:
+            print("[git] 正式紀錄沒有變化，不 commit")
+            return "nochange"
+        msg = f"run_day {day}"
+        r = git("commit", "-m", msg, "--", *changed)   # 只提交這三個資料夾裡有變動的檔，不夾帶別的暫存內容
+        if r.returncode != 0:
+            print(f"[git] 警告：commit 失敗：{(r.stderr or r.stdout).strip()[-150:]}")
+            return "error"
+        h = git("rev-parse", "--short", "HEAD").stdout.strip()
+        print(f"[git] commit {h}: {msg}")
+        if push:
+            p = git("pull", "--rebase", "--autostash")
+            if p.returncode != 0:
+                git("rebase", "--abort")
+                print(f"[git] 警告：pull --rebase 失敗，已保留本機 commit，未 push：{p.stderr.strip()[-150:]}")
+                return "committed"
+            p = git("push")
+            if p.returncode != 0:
+                print(f"[git] 警告：push 失敗（本機 commit 已保留）：{p.stderr.strip()[-150:]}")
+            else:
+                print("[git] push 完成")
+        return "committed"
+    except Exception as e:  # noqa: BLE001  任何 git 問題都不得中斷 run_day
+        print(f"[git] 警告：{type(e).__name__}: {str(e)[:150]}")
+        return "error"
+
+
 def main(argv=None):
     import argparse
     import shutil
@@ -113,7 +162,11 @@ def main(argv=None):
     elif a.outdir:
         set_outdir(os.path.abspath(a.outdir))
     try:
-        return _run(a.hl_liq_ref)
+        day0 = today_tpe(now_utc())
+        out = _run(a.hl_liq_ref)
+        if not a.dry_run and not a.outdir:   # dry-run 與 --outdir 都不得 commit 到 repo
+            commit_state(day0)
+        return out
     finally:
         DIRS.update(saved)
         if tmp:

@@ -62,7 +62,8 @@ class RunDayTest(unittest.TestCase):
                 mock.patch.object(settle, "run", lambda: 0)]
 
     def run_it(self, argv):
-        ps = self.patches()
+        self.commits = []
+        ps = self.patches() + [mock.patch.object(run_day, "commit_state", lambda day, **k: self.commits.append(day))]
         for p in ps:
             p.start()
         try:
@@ -95,6 +96,16 @@ class RunDayTest(unittest.TestCase):
             self.assertEqual(os.listdir(common.DIRS["fair"]), [])
             self.assertEqual(os.listdir(common.DIRS["tickets"]), [])
 
+    def test_commit_only_for_real_run_not_dry_run_or_outdir(self):
+        import tempfile
+        with TempDirs():
+            self.run_it(["--dry-run"])
+            self.assertEqual(self.commits, [])
+            self.run_it(["--outdir", tempfile.mkdtemp()])
+            self.assertEqual(self.commits, [])
+            self.run_it([])
+            self.assertEqual(self.commits, [common.today_tpe()])
+
     def test_outdir(self):
         import tempfile
         with TempDirs():
@@ -102,6 +113,97 @@ class RunDayTest(unittest.TestCase):
             self.run_it(["--outdir", out])
             self.assertTrue(os.path.exists(os.path.join(out, "journal", "journal.csv")))
             self.assertEqual(journal.load(), [])
+
+
+def _git(repo, *a):
+    import subprocess
+    return subprocess.run(["git", "-C", repo, *a], capture_output=True, text=True)
+
+
+class CommitStateTest(unittest.TestCase):
+    def setUp(self):
+        import shutil
+        import subprocess
+        import tempfile
+        self.root = tempfile.mkdtemp()
+        self.remote = os.path.join(self.root, "remote.git")
+        self.repo = os.path.join(self.root, "work")
+        subprocess.run(["git", "init", "-q", "--bare", "-b", "main", self.remote], check=True)
+        subprocess.run(["git", "clone", "-q", self.remote, self.repo], check=True, capture_output=True)
+        _git(self.repo, "config", "user.email", "t@t")
+        _git(self.repo, "config", "user.name", "t")
+        shutil.copy(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".gitignore"),
+                    os.path.join(self.repo, ".gitignore"))
+        for d in ("journal", "fair", "tickets/test", "board", "evidence"):
+            os.makedirs(os.path.join(self.repo, d))
+        _git(self.repo, "add", ".gitignore")
+        _git(self.repo, "commit", "-qm", "init")
+        _git(self.repo, "push", "-q", "-u", "origin", "HEAD:main")
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def w(self, rel, txt="x"):
+        with open(os.path.join(self.repo, rel), "w") as f:
+            f.write(txt)
+
+    def count(self):
+        return int(_git(self.repo, "rev-list", "--count", "HEAD").stdout)
+
+    def test_commits_state_dirs_with_fixed_message_and_pushes(self):
+        self.w("journal/journal.csv", "a,b\n")
+        self.w("fair/m.json", "{}")
+        self.w("tickets/t1.json", "{}")
+        self.assertEqual(run_day.commit_state("2026-11-20", repo=self.repo), "committed")
+        self.assertEqual(_git(self.repo, "log", "-1", "--format=%s").stdout.strip(), "run_day 2026-11-20")
+        files = _git(self.repo, "show", "--name-only", "--format=", "HEAD").stdout.split()
+        self.assertEqual(sorted(files), ["fair/m.json", "journal/journal.csv", "tickets/t1.json"])
+        self.assertEqual(_git(self.repo, "rev-parse", "HEAD").stdout,
+                         _git(self.remote, "rev-parse", "main").stdout)  # 已 push
+
+    def test_snapshots_and_test_tickets_are_not_committed(self):
+        self.w("journal/journal.csv")
+        self.w("tickets/test/x.json")
+        self.w("board/b.json")
+        self.w("evidence/e.json")
+        run_day.commit_state("2026-11-20", repo=self.repo)
+        files = _git(self.repo, "show", "--name-only", "--format=", "HEAD").stdout.split()
+        self.assertEqual(files, ["journal/journal.csv"])
+
+    def test_no_change_no_empty_commit(self):
+        self.w("journal/journal.csv")
+        run_day.commit_state("2026-11-20", repo=self.repo)
+        n = self.count()
+        self.assertEqual(run_day.commit_state("2026-11-20", repo=self.repo), "nochange")
+        self.assertEqual(self.count(), n)
+        self.w("journal/journal.csv", "changed")
+        self.assertEqual(run_day.commit_state("2026-11-21", repo=self.repo), "committed")
+        self.assertEqual(self.count(), n + 1)
+
+    def test_push_failure_warns_and_does_not_raise(self):
+        import io
+        from contextlib import redirect_stdout
+        _git(self.repo, "remote", "set-url", "origin", os.path.join(self.root, "nope.git"))
+        self.w("journal/journal.csv")
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            r = run_day.commit_state("2026-11-20", repo=self.repo)
+        self.assertEqual(r, "committed")                      # 本機 commit 仍保留
+        self.assertIn("警告", buf.getvalue())
+        self.assertEqual(_git(self.repo, "log", "-1", "--format=%s").stdout.strip(), "run_day 2026-11-20")
+
+    def test_does_not_sweep_in_other_staged_files(self):
+        self.w("other.txt")
+        _git(self.repo, "add", "other.txt")
+        self.w("journal/journal.csv")
+        run_day.commit_state("2026-11-20", repo=self.repo)
+        files = _git(self.repo, "show", "--name-only", "--format=", "HEAD").stdout.split()
+        self.assertEqual(files, ["journal/journal.csv"])
+
+    def test_not_a_git_dir_is_warning_only(self):
+        import tempfile
+        self.assertEqual(run_day.commit_state("2026-11-20", repo=tempfile.mkdtemp()), "error")
 
 
 if __name__ == "__main__":

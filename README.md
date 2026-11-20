@@ -85,3 +85,9 @@ python -m unittest discover -s tests
 - 資金費率／OI 取用順序加入 Bitget、Gate、dYdX（見 `docs/data_sources.md`；一律換成每 8h，取第一個可用）。
 - `evidence.global.okx_premarket`：OKX pre_market 永續價格，S4（v2）用，**目前沒有任何策略讀取**。
 - `hl_liq_reference.py` / `run_day.py --hl-liq-ref N`：Hyperliquid 清算價分佈，**僅參考**，不進 `liquidation_clusters`、不是 S1/S2 訊號。
+
+## 正式紀錄進版本控制（v1.3）
+- `journal/`、`fair/`、`tickets/`（`tickets/test/` 除外）是正式紀錄，納入 git；`board/`、`evidence/`、`blind/` 快照與驗證暫存仍被忽略。
+- `python run_day.py` 跑完會自己 commit 這三個資料夾並 push main，訊息固定為 `run_day YYYY-MM-DD`（台北日期）；沒有變化就不產生空 commit；push 失敗只印一行 `[git] 警告`，不中斷、本機 commit 保留。
+- `--dry-run` 和 `--outdir` 一律不 commit 到 repo。
+- **不要在正式工作目錄跑 `git clean -fdx`**（也不要 `git clean -x`／`git stash -u` 之類會清掉未追蹤檔的指令）：它會刪掉還沒 commit 的 `blind/`、`board/`、`evidence/` 快照與正在跑的驗證暫存，曾經因此讓背景驗證程序中途崩潰。要清理請在另一份 clone 裡做。

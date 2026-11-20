@@ -2,15 +2,10 @@
 __pycache__/
 *.pyc
 *.tmp
-# 每日執行輸出不進 git（範例見 examples/）
+# 盤面快照不進 git（範例見 examples/）；正式紀錄 journal/ fair/ tickets/（除 tickets/test/）進 git，由 run_day 自動 commit
 blind/*.json
-fair/*.json
 board/*.json
 evidence/*.json
-tickets/*.json
-journal/*.csv
-journal/halt_*
-journal/*.md
 validation/
 tickets/test/
 validation_run.out
