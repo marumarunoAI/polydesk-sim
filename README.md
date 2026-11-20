@@ -10,6 +10,8 @@ Polymarket 加密市場（BTC/ETH）**模擬**交易台。**只模擬、不下�
 ```
 pip install requests          # 其餘只用標準函式庫，Python 3.10+
 python run_day.py             # 跑完一天（交易員每天台北 13:30 手動執行）
+python run_day.py --dry-run   # 完整跑一遍但不動真實 fair/tickets/journal（複製到暫存資料夾，結束即刪）
+python run_day.py --outdir D  # 全部輸出改放資料夾 D
 python brier.py [2026-W47]    # 每週彙總（不帶參數＝全部）
 python -m unittest discover -s tests
 ```
@@ -24,14 +26,23 @@ python -m unittest discover -s tests
 6. 讀價只走 `gate.read_board()` / `gate.read_evidence()`：fair 檔必須存在、時間戳早於讀價時間且早於該份 board/evidence 的抓取時間，否則 `BlindOrderError`。
 7. `sim.check_all()`：檢查先前 tickets 成交。
 8. `risk_gate`：當日損益 ≤ −2% → 當日停機。
-9. `strategies.decide_s1/s2/s3()` → `risk_gate.size_order()` → `sim.place()`（只掛 maker 限價買單）→ `journal/journal.csv`。
+9. `exits.run()`：對已有成交的部位檢查出場（邊際 < 0.5pp、S1/S2 到期前 24h、S2 否決出現），掛 maker 賣單（`sim.place_exit`，不假設以 mid 成交），紀錄在 `journal/exits.csv`。
+10. `strategies.decide_s1/s2/s3()` → `risk_gate.size_order()` → `sim.place()`（只掛 maker 限價買單）→ `journal/journal.csv`。
+任一階段或單一市場出錯不會中斷整天（印出原因、journal 記 SKIP/gate rejected）；每個市場各自過 `gate.read_board()`＋`gate.read_evidence()`。
 
 冪等：同一台北日重跑，fair 不重算、journal 以（日期, 策略, 市場）為鍵不重記、ticket id 固定不重建。
+
+## 驗證與資料來源文件
+- 各資料來源的實測結果（可用／被擋／HTTP 碼）：[docs/data_sources.md](docs/data_sources.md)
+- 真實資料成交模擬驗證（背景跑數小時的一次性驗證程序）：`python validate_fills.py --hours 3`，報告 [docs/fill_validation.md](docs/fill_validation.md)。測試單 `is_test=true`，放 `tickets/test/`，不進 journal、績效與風控。
 
 ## 成交模擬（sim.py）
 - 只掛 maker：限價若會碰到對手最佳賣價就拒絕。
 - 成交只看真實資料（不假設以 mid 成交）：Polymarket Data API `/v2/trades`（taker 側）中，掛單後有人以 **低於** 限價賣出 → 該量可成交；**等於** 限價 → 先扣掉掛單當時同價位排在前面的量；目前訂單簿已有賣單 ≤ 限價 → 依深度成交。上限為剩餘股數，所以會部分成交。
 - S1/S2 到期前 24 小時未成交部分撤單；S3 持有到中午結算。
+- 簿深穿價成交：先扣排在我們前面的買單量；同一批可見流動性只認領一次（穿價消失後再出現才重新認領）；與成交紀錄證據取較大值，不相加（避免把同一筆流動性算兩次）。
+- 成交紀錄 API 有索引延遲：每次從掛單時間重掃、以交易鍵去重；API 失敗時該張單本輪完全不更新（不推進檢查時間、不撤單）；翻頁時每頁都重送 condition。
+- 中途出場同樣用這套判定：賣出等同在統一簿裡掛「相反 outcome 的買單」。
 
 ## 手續費（依官方文件核實，依下單／事件時間切換；見 `fees.py`）
 公式（切換前後相同）：`fee = shares × feeRate × price × (1 − price)`；**maker 不收平台費（0）**。

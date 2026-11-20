@@ -97,4 +97,14 @@ https://x.com/Argona0x/status/2121600686374699125 （原文存於 argona_article
 | 波動率 σ | Binance 1h K 線 720 根（30 天）實現波動率；窗口內有 FOMC 決議日 → Deribit DVOL | `quant.price_one()` |
 | 觸價已發生 | 上架後 Binance 已觸及關卡 → fair = 1 | `quant.extremes_since()` |
 | 市場範圍 | BTC/ETH 觸價（reach/hit/dip）與同日 above；排除 5m/15m/1h/4h、體育、選舉、政治 | `board.py`、`risk_gate.excluded()` |
-| 出場 | 見 v1.1 `exits.py`（邊際 < 0.5pp、到期前 24h、S2 否決出現） | 待實作時補列 |
+| 出場觸發 | 邊際 < 0.5pp（持有側 fair − mid）；S1/S2 距到期 ≤ 24h；S2 否決條件出現（窗口內 FOMC、資金費率極端、關卡 ±3% 內有 ≥ $10B 叢集）；S3 持有到中午結算、不適用 24h | `exits.py` |
+| 出場做法 | 掛 maker 賣單：自家側最佳賣價 −1 tick（價差僅 1 tick 則排隊在最佳賣價）；成交用真實 taker 成交/簿深判定，不假設以 mid 成交、不吃單；出場單掛到到期，沒成交的部分持有到結算 | `sim.place_exit()` |
+| 輸入 unavailable 時的出場 | 邊際無法評估就不出場（只套用時間規則），不當成出場理由 | `exits.exit_reason()` |
+| S1 清算叢集（tape） | 價格與關卡之間（含關卡）清算總額 ≥ $10B 才算確認；買 YES 需確認，買 NO 需無叢集；資料源缺 → SKIP，**不用任何代理指標** | `strategies.liq_between()` |
+| S2 清算否決 | 關卡 ±3% 內有 ≥ $10B 叢集 → 否決 | `strategies.LIQ_NEAR_PCT` |
+| 清算叢集資料格式 | `evidence.assets.<A>.liquidation_clusters.value = [{"price":…, "usd":…}]`；目前免費來源沒有 → unavailable | `strategies.liq_clusters_value()` |
+| 費率表（依下單/事件時間切換） | 2026-11-20 23:59 UTC 前 Crypto taker 0.07；起 0.01（其他不變：maker 0，公式 fee = shares×rate×p×(1−p)）。進場門檻 fee 用決策當下的費率 | `fees.py` |
+| 成交判定 | 只認真實 taker 成交穿過/等於限價（同價先扣排隊量）與簿深穿價（先扣排隊量、同批流動性只認領一次）；成交紀錄 API 失敗則該張單本輪不更新 | `sim.apply_fills()` |
+| 資金費率來源順序 | Binance → OKX → Deribit → Hyperliquid（取第一個可用） | `strategies.FUNDING_ORDER` |
+| BTC ETF 流量 | btcetfdata.com，9 檔 issuer 全部更新到前一美東交易日才輸出（BTC 數量，只看方向）；ETH 無來源 → unavailable | `evidence.btc_etf_prev_day()` |
+| 總經日程 | Nasdaq 經濟日曆（美國 CPI/PPI/NFP/PCE/GDP/FOMC/零售/ISM/失業金），未來 8 天 | `evidence.macro_events()` |
