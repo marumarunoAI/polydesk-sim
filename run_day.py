@@ -72,12 +72,58 @@ def exposure_and_pnl(rows_by_slug):
     return exp, pnl
 
 
-def main():
+def stage(name, fn, default):
+    """單一階段失敗不中斷整天：印出原因後用預設值繼續。"""
+    try:
+        return fn()
+    except Exception as e:  # noqa: BLE001
+        print(f"[{name}] 失敗但繼續：{type(e).__name__}: {str(e)[:200]}")
+        return default
+
+
+def set_outdir(outdir):
+    """把 blind/fair/board/evidence/tickets/journal 全部改放到 outdir 底下。"""
+    for k in DIRS:
+        DIRS[k] = os.path.join(outdir, k)
+        os.makedirs(DIRS[k], exist_ok=True)
+
+
+def main(argv=None):
+    import argparse
+    import shutil
+    import tempfile
+    ap = argparse.ArgumentParser(description="跑完一天的模擬交易台（只模擬，不下真單）")
+    ap.add_argument("--outdir", help="所有輸出（blind/fair/board/evidence/tickets/journal）改放這個資料夾")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="完整跑一遍但不改動真實的 fair/tickets/journal：先把現有狀態複製到暫存資料夾，結束即刪")
+    a = ap.parse_args(argv)
+    saved = dict(DIRS)
+    tmp = None
+    if a.dry_run:
+        tmp = tempfile.mkdtemp(prefix="polydesk_dry_")
+        for k in ("fair", "tickets", "journal"):   # 沿用現有狀態，讓冪等與曝險計算與真跑一致
+            src = a.outdir and os.path.join(a.outdir, k) or DIRS[k]
+            if os.path.isdir(src):
+                shutil.copytree(src, os.path.join(tmp, k))
+        set_outdir(tmp)
+        print(f"[dry-run] 輸出改寫到暫存資料夾 {tmp}（結束後刪除，不影響真實資料）")
+    elif a.outdir:
+        set_outdir(os.path.abspath(a.outdir))
+    try:
+        return _run()
+    finally:
+        DIRS.update(saved)
+        if tmp:
+            shutil.rmtree(tmp, ignore_errors=True)
+            print("[dry-run] 暫存資料夾已刪除")
+
+
+def _run():
     t0 = now_utc()
     day = today_tpe(t0)
     print(f"== run_day {day}（台北）開始 {stamp(t0)['taipei']}")
 
-    n_settled = settle.run()
+    n_settled = stage("settle", settle.run, 0)
     print(f"[settle] 回填結算 {n_settled} 列")
 
     markets, stats = board.scan_markets()           # Gamma：只取規則與中繼資料
@@ -94,23 +140,30 @@ def main():
     evidence.write(ev)
     print(f"[board] {snap['counts']}  [evidence] 抓取 {ev['fetched_at']['taipei']}")
 
-    rows, fairs = {}, {}
+    # 每個市場各自過閘門（board 與 evidence 都要 fair 在先）；任一市場被拒只影響該市場，並記 journal
+    rows, fairs, gate_err, ev_checked = {}, {}, {}, None
     for m in markets:
+        slug = m["slug"]
         try:
-            fairs[m["slug"]], rows[m["slug"]] = gate.read_board(m["slug"])
-        except (gate.BlindOrderError, KeyError) as e:
-            print(f"  ! {m['slug']}: {e}")
-    ev = gate.read_evidence(markets[0]["slug"]) if markets else ev
+            fairs[slug], rows[slug] = gate.read_board(slug)
+            ev_checked = gate.read_evidence(slug)
+        except (gate.BlindOrderError, KeyError, OSError, ValueError) as e:
+            gate_err[slug] = f"{type(e).__name__}: {e}"
+            fairs.pop(slug, None)
+            rows.pop(slug, None)
+            print(f"  ! {slug}: {gate_err[slug]}")
+    print(f"[gate] 通過 {len(rows)} 個，被拒 {len(gate_err)} 個")
+    ev = ev_checked  # 只用經過 gate.read_evidence() 的那份；沒有任何市場通過就不會有決策
 
-    checked = sim.check_all(rows)
+    checked = stage("sim", lambda: sim.check_all(rows), [])
     print(f"[sim] 檢查先前 tickets {len(checked)} 張")
 
-    ex = exits.run(rows, fairs, ev, now_utc())
+    ex = stage("exits", lambda: exits.run(rows, fairs, ev, now_utc()), [])
     for pid, why, status in ex:
         print(f"[exit] {pid}: {why} → {status}")
     print(f"[exit] 檢查出場條件，觸發 {len(ex)} 筆")
 
-    exposure, day_pnl = exposure_and_pnl(rows)
+    exposure, day_pnl = stage("risk", lambda: exposure_and_pnl(rows), ({"by_market": collections.Counter(), "by_asset_barrier": collections.Counter()}, 0.0))
     halted = risk_gate.check_daily_loss(day_pnl, day)
     print(f"[risk] 當日損益 {day_pnl:.2f} USD  停機={halted}")
 
@@ -118,13 +171,28 @@ def main():
     now = now_utc()
     new_rows, tally = [], collections.Counter()
     reasons = collections.Counter()
+    by_slug = {m["slug"]: m for m in markets}
+    for slug, err in gate_err.items():   # 被閘門拒絕的市場也要記 journal（沒有 fair/價就留空）
+        m = by_slug[slug]
+        for s in (["S3"] if m["kind"] == "above" else ["S1"]):
+            if not journal.has(day, s, slug):
+                new_rows.append({
+                    "time_taipei": stamp(now)["taipei"], "time_utc": stamp(now)["utc"],
+                    "date_taipei": day, "strategy": s, "market_slug": slug, "asset": m["asset"],
+                    "kind": m["kind"], "fair": "", "entry_mid": "", "decision": "SKIP",
+                    "reason": f"gate rejected: {err}", "size": 0.0, "result": ""})
+                tally[(s, "SKIP")] += 1
+                reasons[(s, "gate rejected")] += 1
     for slug, row in rows.items():
         fair = fairs[slug]
         for s in strategies_for(row, fair):
             if journal.has(day, s, slug):
                 tally["already_logged"] += 1
                 continue
-            d = DECIDERS[s](fair, row, ev, now)
+            try:
+                d = DECIDERS[s](fair, row, ev, now)
+            except Exception as e:  # noqa: BLE001  單一市場出錯不中斷整天
+                d = {"decision": "SKIP", "reason": f"error: {type(e).__name__}: {str(e)[:120]}"}
             size, limit, tid, status, fee = 0.0, "", "", "", ""
             if d["decision"] == "TRADE":
                 q_side = fair["fair_yes"] if d["side"] == "YES" else 1 - fair["fair_yes"]
@@ -184,4 +252,4 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))
