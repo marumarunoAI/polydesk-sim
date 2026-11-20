@@ -1,0 +1,352 @@
+{
+  "fetched_at": {
+    "utc": "2026-11-20T09:37:07Z",
+    "taipei": "2026-11-20T17:37:07+08:00",
+    "epoch": 1795167427.070545
+  },
+  "source": [
+    "https://gamma-api.polymarket.com",
+    "https://clob.polymarket.com"
+  ],
+  "counts": {
+    "above_BTC": 77,
+    "above_ETH": 77,
+    "reach_BTC": 88,
+    "reach_ETH": 83
+  },
+  "markets": [
+    {
+      "market_id": "7018476",
+      "slug": "bitcoin-above-58k-on-november-20-2026",
+      "condition_id": "0xa5d94c66f63a8d6c8792fc3312ce96bb6d2022385b52d5d107c80ce6fa95a87b",
+      "event_slug": "bitcoin-above-on-november-20-2026",
+      "event_title": "Bitcoin above ___ on November 20?",
+      "question": "Will the price of Bitcoin be above $58,000 on November 20?",
+      "kind": "above",
+      "asset": "BTC",
+      "direction": "up",
+      "level": 58000.0,
+      "rules": "This market will resolve to \"Yes\" if the Binance 1 minute candle for BTC/USDT closing at 12:00 in the ET timezone (noon) on the date specified in the title has a final \"Close\" price higher than the price specified in the title. Otherwise, this market will resolve to \"No\".\n\nThe resolution source for this market is Binance, specifically the BTC/USDT \"Close\" prices currently available at https://www.binance.com/en/trade/BTC_USDT with \"1m\" and \"Candles\" selected on the top bar.\n\nPlease note that this market is about the price according to Binance BTC/USDT, not according to other exchanges or trading pairs.\n\nPrice precision is determined by the number of decimal places in the source.",
+      "resolution_source": "https://www.binance.com/en/trade/BTC_USDT",
+      "end_utc": "2026-11-20T17:00:00Z",
+      "end_taipei": "2026-11-21T01:00:00+08:00",
+      "yes_token": "100988832313917793924531670747964571498221785586144778608192340204227884687124",
+      "no_token": "52845395458310646599890616932035981154343687718130925964407205955373911854541",
+      "tick_size": 0.001,
+      "min_order_size": 5,
+      "tags": [
+        "bitcoin",
+        "weekly",
+        "multi-strikes",
+        "crypto",
+        "crypto-prices",
+        "recurring",
+        "hide-from-new"
+      ],
+      "yes_book": {
+        "best_bid": 0.983,
+        "best_ask": 0.984,
+        "mid": 0.9835,
+        "bids_top5": [
+          {
+            "price": 0.983,
+            "size": 5.0
+          },
+          {
+            "price": 0.982,
+            "size": 20.0
+          },
+          {
+            "price": 0.981,
+            "size": 25.0
+          },
+          {
+            "price": 0.98,
+            "size": 1697.55
+          },
+          {
+            "price": 0.979,
+            "size": 5.0
+          }
+        ],
+        "asks_top5": [
+          {
+            "price": 0.984,
+            "size": 447.99
+          },
+          {
+            "price": 0.985,
+            "size": 428.0
+          },
+          {
+            "price": 0.986,
+            "size": 15.0
+          },
+          {
+            "price": 0.987,
+            "size": 180.0
+          },
+          {
+            "price": 0.988,
+            "size": 1495.0
+          }
+        ],
+        "bid_depth_top5": 1752.55,
+        "ask_depth_top5": 2565.99,
+        "last_trade_price": 0.985,
+        "book_timestamp_ms": "1795167412079"
+      },
+      "fetched_at_utc": "2026-11-20T09:37:07Z"
+    },
+    {
+      "market_id": "7018477",
+      "slug": "bitcoin-above-60k-on-november-20-2026",
+      "condition_id": "0x36f19a3e2cddbb8d19f6fb25d6718da3c4ebf152ebdd5c177245c8114404ae63",
+      "event_slug": "bitcoin-above-on-november-20-2026",
+      "event_title": "Bitcoin above ___ on November 20?",
+      "question": "Will the price of Bitcoin be above $60,000 on November 20?",
+      "kind": "above",
+      "asset": "BTC",
+      "direction": "up",
+      "level": 60000.0,
+      "rules": "This market will resolve to \"Yes\" if the Binance 1 minute candle for BTC/USDT closing at 12:00 in the ET timezone (noon) on the date specified in the title has a final \"Close\" price higher than the price specified in the title. Otherwise, this market will resolve to \"No\".\n\nThe resolution source for this market is Binance, specifically the BTC/USDT \"Close\" prices currently available at https://www.binance.com/en/trade/BTC_USDT with \"1m\" and \"Candles\" selected on the top bar.\n\nPlease note that this market is about the price according to Binance BTC/USDT, not according to other exchanges or trading pairs.\n\nPrice precision is determined by the number of decimal places in the source.",
+      "resolution_source": "https://www.binance.com/en/trade/BTC_USDT",
+      "end_utc": "2026-11-20T17:00:00Z",
+      "end_taipei": "2026-11-21T01:00:00+08:00",
+      "yes_token": "11949457222115787559744154693073092545919603897410434379238328205995313541835",
+      "no_token": "93876175617527978767911803748946468739720636028826950321352148868494647376711",
+      "tick_size": 0.001,
+      "min_order_size": 5,
+      "tags": [
+        "bitcoin",
+        "weekly",
+        "multi-strikes",
+        "crypto",
+        "crypto-prices",
+        "recurring",
+        "hide-from-new"
+      ],
+      "yes_book": {
+        "best_bid": 0.878,
+        "best_ask": 0.879,
+        "mid": 0.8785,
+        "bids_top5": [
+          {
+            "price": 0.878,
+            "size": 5882.36
+          },
+          {
+            "price": 0.876,
+            "size": 214.0
+          },
+          {
+            "price": 0.875,
+            "size": 105.0
+          },
+          {
+            "price": 0.862,
+            "size": 219.0
+          },
+          {
+            "price": 0.861,
+            "size": 5.0
+          }
+        ],
+        "asks_top5": [
+          {
+            "price": 0.879,
+            "size": 25.14
+          },
+          {
+            "price": 0.883,
+            "size": 214.0
+          },
+          {
+            "price": 0.884,
+            "size": 234.0
+          },
+          {
+            "price": 0.885,
+            "size": 440.0
+          },
+          {
+            "price": 0.887,
+            "size": 5.0
+          }
+        ],
+        "bid_depth_top5": 6425.36,
+        "ask_depth_top5": 918.14,
+        "last_trade_price": 0.879,
+        "book_timestamp_ms": "1795167426711"
+      },
+      "fetched_at_utc": "2026-11-20T09:37:07Z"
+    },
+    {
+      "market_id": "7018476",
+      "slug": "bitcoin-above-58k-on-november-20-2026",
+      "condition_id": "0xa5d94c66f63a8d6c8792fc3312ce96bb6d2022385b52d5d107c80ce6fa95a87b",
+      "event_slug": "bitcoin-above-on-november-20-2026",
+      "event_title": "Bitcoin above ___ on November 20?",
+      "question": "Will the price of Bitcoin be above $58,000 on November 20?",
+      "kind": "above",
+      "asset": "BTC",
+      "direction": "up",
+      "level": 58000.0,
+      "rules": "This market will resolve to \"Yes\" if the Binance 1 minute candle for BTC/USDT closing at 12:00 in the ET timezone (noon) on the date specified in the title has a final \"Close\" price higher than the price specified in the title. Otherwise, this market will resolve to \"No\".\n\nThe resolution source for this market is Binance, specifically the BTC/USDT \"Close\" prices currently available at https://www.binance.com/en/trade/BTC_USDT with \"1m\" and \"Candles\" selected on the top bar.\n\nPlease note that this market is about the price according to Binance BTC/USDT, not according to other exchanges or trading pairs.\n\nPrice precision is determined by the number of decimal places in the source.",
+      "resolution_source": "https://www.binance.com/en/trade/BTC_USDT",
+      "end_utc": "2026-11-20T17:00:00Z",
+      "end_taipei": "2026-11-21T01:00:00+08:00",
+      "yes_token": "100988832313917793924531670747964571498221785586144778608192340204227884687124",
+      "no_token": "52845395458310646599890616932035981154343687718130925964407205955373911854541",
+      "tick_size": 0.001,
+      "min_order_size": 5,
+      "tags": [
+        "bitcoin",
+        "weekly",
+        "multi-strikes",
+        "crypto",
+        "crypto-prices",
+        "recurring",
+        "hide-from-new"
+      ],
+      "yes_book": {
+        "best_bid": 0.983,
+        "best_ask": 0.984,
+        "mid": 0.9835,
+        "bids_top5": [
+          {
+            "price": 0.983,
+            "size": 5.0
+          },
+          {
+            "price": 0.982,
+            "size": 20.0
+          },
+          {
+            "price": 0.981,
+            "size": 25.0
+          },
+          {
+            "price": 0.98,
+            "size": 1697.55
+          },
+          {
+            "price": 0.979,
+            "size": 5.0
+          }
+        ],
+        "asks_top5": [
+          {
+            "price": 0.984,
+            "size": 447.99
+          },
+          {
+            "price": 0.985,
+            "size": 428.0
+          },
+          {
+            "price": 0.986,
+            "size": 15.0
+          },
+          {
+            "price": 0.987,
+            "size": 180.0
+          },
+          {
+            "price": 0.988,
+            "size": 1495.0
+          }
+        ],
+        "bid_depth_top5": 1752.55,
+        "ask_depth_top5": 2565.99,
+        "last_trade_price": 0.985,
+        "book_timestamp_ms": "1795167412079"
+      },
+      "fetched_at_utc": "2026-11-20T09:37:07Z"
+    },
+    {
+      "market_id": "7018477",
+      "slug": "bitcoin-above-60k-on-november-20-2026",
+      "condition_id": "0x36f19a3e2cddbb8d19f6fb25d6718da3c4ebf152ebdd5c177245c8114404ae63",
+      "event_slug": "bitcoin-above-on-november-20-2026",
+      "event_title": "Bitcoin above ___ on November 20?",
+      "question": "Will the price of Bitcoin be above $60,000 on November 20?",
+      "kind": "above",
+      "asset": "BTC",
+      "direction": "up",
+      "level": 60000.0,
+      "rules": "This market will resolve to \"Yes\" if the Binance 1 minute candle for BTC/USDT closing at 12:00 in the ET timezone (noon) on the date specified in the title has a final \"Close\" price higher than the price specified in the title. Otherwise, this market will resolve to \"No\".\n\nThe resolution source for this market is Binance, specifically the BTC/USDT \"Close\" prices currently available at https://www.binance.com/en/trade/BTC_USDT with \"1m\" and \"Candles\" selected on the top bar.\n\nPlease note that this market is about the price according to Binance BTC/USDT, not according to other exchanges or trading pairs.\n\nPrice precision is determined by the number of decimal places in the source.",
+      "resolution_source": "https://www.binance.com/en/trade/BTC_USDT",
+      "end_utc": "2026-11-20T17:00:00Z",
+      "end_taipei": "2026-11-21T01:00:00+08:00",
+      "yes_token": "11949457222115787559744154693073092545919603897410434379238328205995313541835",
+      "no_token": "93876175617527978767911803748946468739720636028826950321352148868494647376711",
+      "tick_size": 0.001,
+      "min_order_size": 5,
+      "tags": [
+        "bitcoin",
+        "weekly",
+        "multi-strikes",
+        "crypto",
+        "crypto-prices",
+        "recurring",
+        "hide-from-new"
+      ],
+      "yes_book": {
+        "best_bid": 0.878,
+        "best_ask": 0.879,
+        "mid": 0.8785,
+        "bids_top5": [
+          {
+            "price": 0.878,
+            "size": 5882.36
+          },
+          {
+            "price": 0.876,
+            "size": 214.0
+          },
+          {
+            "price": 0.875,
+            "size": 105.0
+          },
+          {
+            "price": 0.862,
+            "size": 219.0
+          },
+          {
+            "price": 0.861,
+            "size": 5.0
+          }
+        ],
+        "asks_top5": [
+          {
+            "price": 0.879,
+            "size": 25.14
+          },
+          {
+            "price": 0.883,
+            "size": 214.0
+          },
+          {
+            "price": 0.884,
+            "size": 234.0
+          },
+          {
+            "price": 0.885,
+            "size": 440.0
+          },
+          {
+            "price": 0.887,
+            "size": 5.0
+          }
+        ],
+        "bid_depth_top5": 6425.36,
+        "ask_depth_top5": 918.14,
+        "last_trade_price": 0.879,
+        "book_timestamp_ms": "1795167426711"
+      },
+      "fetched_at_utc": "2026-11-20T09:37:07Z"
+    }
+  ],
+  "note": "範例：只保留 4 筆市場"
+}

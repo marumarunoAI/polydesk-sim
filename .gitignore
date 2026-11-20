@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.pyc
+*.tmp
+# 每日執行輸出不進 git（範例見 examples/）
+blind/*.json
+fair/*.json
+board/*.json
+evidence/*.json
+tickets/*.json
+journal/*.csv
+journal/halt_*
