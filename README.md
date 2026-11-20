@@ -33,9 +33,15 @@ python -m unittest discover -s tests
 - 成交只看真實資料（不假設以 mid 成交）：Polymarket Data API `/v2/trades`（taker 側）中，掛單後有人以 **低於** 限價賣出 → 該量可成交；**等於** 限價 → 先扣掉掛單當時同價位排在前面的量；目前訂單簿已有賣單 ≤ 限價 → 依深度成交。上限為剩餘股數，所以會部分成交。
 - S1/S2 到期前 24 小時未成交部分撤單；S3 持有到中午結算。
 
-## 手續費（依官方文件核實）
-來源：https://docs.polymarket.com/trading/fees （2026-11-20 讀取）。`fee = C × feeRate × p × (1 − p)`，Crypto 類 taker feeRate = 0.07、**maker = 0（maker 從不收費）**。參數在 `fees.py`。文件註明 2026-11-20 23:59 UTC 起 taker 費與返佣會調整，之後需重新核實。
-進場門檻：`|fair − mid| > 0.07·mid·(1−mid) + 2 pp`（DESK_RULES 第 3 條的 fee 用 taker 公式，保守）；模擬成交實際收 maker 費 0。
+## 手續費（依官方文件核實，依下單／事件時間切換；見 `fees.py`）
+公式（切換前後相同）：`fee = shares × feeRate × price × (1 − price)`；**maker 不收平台費（0）**。
+
+| 時間 | Crypto 日線市場 taker 係數 | maker | maker 返佣 | 來源 |
+|---|---|---|---|---|
+| 到 2026-11-20 23:59 UTC 前 | 0.07 | 0 | 每日返佣池（無法預估，記 0） | https://docs.polymarket.com/trading/fees |
+| 2026-11-20 23:59 UTC 起（台北 11/21 07:59） | **0.01**（BTC 5/15 分鐘 up/down 為 0.05，本台不碰） | 0 | 依 30 天 maker 加權量分級（<$20 萬 0%、3%、7%、10%、15%）；本台虛擬帳號量遠低 → 0 | https://docs.polymarket.com/programs/fee-and-rebate-changes-november-2026 |
+
+兩頁內容於 2026-11-20 17:5x（台北）親自讀取核實。進場門檻 `|fair − mid| > fee + 2 pp`，fee 用**決策當下**時間的 taker 公式（保守）：切換前 mid=0.5 時門檻 3.75pp，切換後 2.25pp；模擬成交實收 maker 費 0。測試 `tests/test_fees.py` 跨過切換點驗證。
 
 ## 資料來源與目前限制
 | 資料 | 來源 | 狀態 |

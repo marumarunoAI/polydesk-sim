@@ -16,7 +16,7 @@ def _na(x):
     return x is None or x == UNAVAILABLE
 
 
-def _base(fair, row):
+def _base(fair, row, now=None):
     q, mid = fair.get("fair_yes"), row["yes_book"].get("mid")
     if _na(q):
         return None, {"decision": "SKIP", "reason": f"fair unavailable: {fair.get('inputs_unavailable')}"}
@@ -24,7 +24,7 @@ def _base(fair, row):
         return None, {"decision": "SKIP", "reason": f"input unavailable: {fair['inputs_unavailable']}"}
     if _na(mid):
         return None, {"decision": "SKIP", "reason": "mid unavailable (one-sided book)"}
-    fee = fees.taker_fee_per_share(mid)
+    fee = fees.taker_fee_per_share(mid, when=now or now_utc())
     return (q, mid, fee, fee + risk_gate.EDGE_BUFFER), None
 
 
@@ -55,7 +55,7 @@ def _oi(ev_a):
 
 def decide_s1(fair, row, ev, now=None):
     now = now or now_utc()
-    base, out = _base(fair, row)
+    base, out = _base(fair, row, now)
     if out:
         return out
     q, mid, fee, thr = base
@@ -74,7 +74,7 @@ def decide_s1(fair, row, ev, now=None):
 
 def decide_s2(fair, row, ev, now=None):
     now = now or now_utc()
-    base, out = _base(fair, row)
+    base, out = _base(fair, row, now)
     if out:
         return out
     q, mid, fee, thr = base
@@ -101,7 +101,7 @@ def decide_s2(fair, row, ev, now=None):
 
 
 def decide_s3(fair, row, ev, now=None):
-    base, out = _base(fair, row)
+    base, out = _base(fair, row, now)
     if out:
         return out
     q, mid, fee, thr = base

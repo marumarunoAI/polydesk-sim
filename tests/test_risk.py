@@ -46,7 +46,9 @@ class RiskTest(unittest.TestCase):
             self.assertEqual(rg.size_order(0.9, 0.1, {"slug": "x", "asset": "BTC", "tags": ["sports"]}, {})[0], 0)
 
     def test_fees(self):
-        self.assertAlmostEqual(fees.taker_fee_per_share(0.5) * 100, 1.75)
+        from datetime import datetime, timezone
+        before = datetime(2026, 11, 20, 12, 0, tzinfo=timezone.utc)
+        self.assertAlmostEqual(fees.taker_fee_per_share(0.5, when=before) * 100, 1.75)
         self.assertEqual(fees.maker_fee(100, 0.5), 0)
 
 

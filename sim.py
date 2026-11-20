@@ -67,6 +67,7 @@ def place(tid, strategy, market, outcome, limit, shares, usd, yes_book,
         "is_test": bool(is_test), "seen_trades": {},
         "queue_ahead": queue, "initial_queue": queue, "status": "open", "filled_shares": 0.0,
         "fill_cost": 0.0, "fee_paid": 0.0, "fee_rate_maker": fees.MAKER_FEE_RATE,
+        "fee_source": fees.fee_source(), "maker_rebate_rate": fees.maker_rebate_rate(),
         "last_checked_epoch": None, "fills": [],
     }
     write_json(p, t)
