@@ -10,3 +10,4 @@ evidence/*.json
 tickets/*.json
 journal/*.csv
 journal/halt_*
+journal/*.md
