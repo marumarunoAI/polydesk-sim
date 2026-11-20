@@ -54,12 +54,14 @@ def _hours_left(row, now):
     return (parse_iso(row["end_utc"]) - now).total_seconds() / 3600
 
 
-FUNDING_ORDER = ("binance_funding", "okx_funding", "deribit_funding", "hyperliquid_funding")
-OI_ORDER = ("binance_oi", "okx_oi", "hyperliquid_oi", "deribit_oi")
+# 「取第一個可用」。資金費率一律換成每 8h；dYdX 規模小，排最後。
+FUNDING_ORDER = ("binance_funding", "okx_funding", "bitget_funding", "gate_funding",
+                 "deribit_funding", "hyperliquid_funding", "dydx_funding")
+OI_ORDER = ("binance_oi", "okx_oi", "bitget_oi", "gate_oi", "hyperliquid_oi", "deribit_oi", "dydx_oi")
 
 
 def _funding_8h(ev_a):
-    """資金費率（每 8h）：依序取第一個可用的免費來源（Binance、OKX、Deribit、Hyperliquid）。"""
+    """資金費率（每 8h）：依序取第一個可用的免費來源（見 FUNDING_ORDER）。"""
     for k in FUNDING_ORDER:
         v = ev_a.get(k)
         if v and not _na(v["value"]):

@@ -66,6 +66,53 @@ def okx(asset):
     return (item(rate * 8 / hours, fu, "per 8h", raw_rate=rate, interval_hours=hours),
             item(float(o["oiCcy"]), oi_url, asset, oi_usd=float(o["oiUsd"])))
 
+BITGET = "https://api.bitget.com/api/v2/mix/market"
+GATE = "https://api.gateio.ws/api/v4/futures/usdt/contracts"
+DYDX = "https://indexer.dydx.trade/v4/perpetualMarkets"
+
+
+def bitget(asset):
+    """Bitget USDT 永續（公開 API，無需 key）：資金費率（換算成每 8h）與 OI（單位＝幣）。"""
+    sym = f"{asset}USDT"
+    fu = f"{BITGET}/current-fund-rate?symbol={sym}&productType=USDT-FUTURES"
+    f = get_json(fu, retries=1)
+    if f.get("code") != "00000" or not f.get("data"):
+        raise RuntimeError(f"Bitget funding code={f.get('code')} msg={f.get('msg')}")
+    f = f["data"][0]
+    hours = float(f.get("fundingRateInterval") or 8)
+    rate = float(f["fundingRate"])
+    oi_url = f"{BITGET}/open-interest?symbol={sym}&productType=USDT-FUTURES"
+    o = get_json(oi_url, retries=1)
+    if o.get("code") != "00000" or not o.get("data", {}).get("openInterestList"):
+        raise RuntimeError(f"Bitget OI code={o.get('code')} msg={o.get('msg')}")
+    size = float(o["data"]["openInterestList"][0]["size"])
+    return (item(rate * 8 / hours, fu, "per 8h", raw_rate=rate, interval_hours=hours),
+            item(size, oi_url, asset))
+
+
+def gate(asset):
+    """Gate USDT 永續合約（公開 API，無需 key）：資金費率（funding_interval 秒 → 每 8h）；
+    OI＝position_size（張）× quanto_multiplier（幣/張）。"""
+    url = f"{GATE}/{asset}_USDT"
+    c = get_json(url, retries=1)
+    hours = float(c.get("funding_interval") or 28800) / 3600
+    rate = float(c["funding_rate"])
+    oi_coin = float(c["position_size"]) * float(c["quanto_multiplier"])
+    return (item(rate * 8 / hours, url, "per 8h", raw_rate=rate, interval_hours=hours),
+            item(oi_coin, url, asset, position_size_contracts=float(c["position_size"]),
+                 quanto_multiplier=float(c["quanto_multiplier"])))
+
+
+def dydx(asset):
+    """dYdX v4 indexer（公開 API，無需 key）：nextFundingRate 是每 1h → ×8；OI 單位＝幣。規模小，排最後。"""
+    url = f"{DYDX}?ticker={asset}-USD"
+    m = get_json(url, retries=1)["markets"][f"{asset}-USD"]
+    if m.get("status") != "ACTIVE":
+        raise RuntimeError(f"dYdX {asset}-USD status={m.get('status')}")
+    rate = float(m["nextFundingRate"])
+    return (item(rate * 8, url, "per 8h", raw_rate_1h=rate, interval_hours=1),
+            item(float(m["openInterest"]), url, asset))
+
 
 def deribit_perp(asset):
     """Deribit 永續 ticker（公開 API）：funding_8h 與 open_interest。"""
@@ -174,6 +221,12 @@ def collect():
             der_f, der_o = deribit_perp(a)
         except Exception as e:
             der_f = der_o = na(DERIBIT_API, str(e)[:200])
+        extra = {}
+        for name, fn, src in (("bitget", bitget, BITGET), ("gate", gate, GATE), ("dydx", dydx, DYDX)):
+            try:
+                extra[f"{name}_funding"], extra[f"{name}_oi"] = fn(a)
+            except Exception as e:
+                extra[f"{name}_funding"] = extra[f"{name}_oi"] = na(src, str(e)[:200])
         ev["assets"][a] = {
             "binance_funding": _try(lambda: binance_funding(a), f"{BFUT}/premiumIndex"),
             "binance_oi": _try(lambda: binance_oi(a), f"{BFUT}/openInterest"),
@@ -181,6 +234,7 @@ def collect():
             "hyperliquid_oi": hl.get(a, {}).get("oi", na(HL, "asset missing")),
             "okx_funding": okx_f, "okx_oi": okx_o,
             "deribit_funding": der_f, "deribit_oi": der_o,
+            **extra,
             "deribit_dvol": _try(lambda: deribit_dvol(a), DERIBIT),
             "etf_flow_prev_day": _try(lambda: etf_flow(a), BTCETF),
             "liquidation_clusters": na("none", "沒有免費的清算熱力圖來源（文章用 Minara 付費工具）"),

@@ -17,6 +17,11 @@
 | Hyperliquid 資金費率／OI | POST https://api.hyperliquid.xyz/info `metaAndAssetCtxs` | 200 | 是（funding 為每 1h，程式換算 8h） |
 | **OKX 資金費率／OI** | https://www.okx.com/api/v5/public/funding-rate、open-interest | **200** | **是（v1.1 新增）** |
 | **Deribit 永續 funding_8h／OI** | https://www.deribit.com/api/v2/public/ticker?instrument_name=BTC-PERPETUAL | **200** | **是（v1.1 新增）** |
+| **Bitget 資金費率／OI** | https://api.bitget.com/api/v2/mix/market/current-fund-rate?symbol=BTCUSDT&productType=USDT-FUTURES、…/open-interest | **200**（BTC、ETH 皆通；2026-11-20 18:45 台北：BTC 資金費率 −0.000031／8h、OI 36,976 BTC） | **是（資料源補強）** |
+| **Gate 資金費率／OI** | https://api.gateio.ws/api/v4/futures/usdt/contracts/BTC_USDT（ETH_USDT） | **200**（18:45：BTC −0.0000009／8h、OI＝position_size×0.0001＝29,653 BTC；ETH 乘數 0.01） | **是（資料源補強）** |
+| **dYdX v4 資金費率／OI** | https://indexer.dydx.trade/v4/perpetualMarkets?ticker=BTC-USD | **200**（18:45：nextFundingRate 每 1h −0.0000061→×8；OI 194.98 BTC，規模小） | **是（資料源補強，排最後）** |
+| **OKX pre_market 永續（S4 v2 用，僅留證據）** | https://www.okx.com/api/v5/public/instruments?instType=SWAP（ruleType=pre_market）＋ /api/v5/market/ticker | 見下「OKX pre_market」 | 只寫 evidence，**不接任何策略** |
+| **Hyperliquid 持倉清算價分佈（僅參考）** | https://stats-data.hyperliquid.xyz/Mainnet/leaderboard ＋ POST https://api.hyperliquid.xyz/info `clearinghouseState` | 見下「Hyperliquid 清算價參考」 | **只寫 evidence 參考，不進 `liquidation_clusters`、不當 S1/S2 訊號** |
 | Bybit | https://api.bybit.com/v5/market/tickers（及 api.bytick.com） | **403**（CloudFront 地區封鎖） | 否 |
 | Coinbase International | https://api.international.coinbase.com/… | 301（Cloudflare 轉址，未再追） | 否 |
 | Deribit 隱含波動率 DVOL | https://www.deribit.com/api/v2/public/get_volatility_index_data | **200**（BTC 0.49、ETH 0.62） | 是（quant.py、evidence） |
@@ -38,7 +43,9 @@
 | 交易所流向、盤前價 | 無免費來源 | — | unavailable |
 
 ## 使用細節
-- **資金費率**取用順序：Binance → OKX → Deribit → Hyperliquid，取第一個可用的；所有來源的值都留在 evidence 供對照。OKX 的 `fundingRate` 依 `nextFundingTime − fundingTime` 換算成每 8h。
+- **資金費率**取用順序（`strategies.FUNDING_ORDER`）：Binance → OKX → Bitget → Gate → Deribit → Hyperliquid → dYdX，取第一個可用的；**OI** 順序（`OI_ORDER`）：Binance → OKX → Bitget → Gate → Hyperliquid → Deribit → dYdX。所有來源的值都留在 evidence 供對照，每筆帶 `source` URL 與 `fetched_at`。
+  換算：OKX 依 `nextFundingTime − fundingTime`；Bitget 依 `fundingRateInterval`；Gate 依 `funding_interval`（秒）；dYdX `nextFundingRate` 為每 1h（×8）；Hyperliquid 為每 1h（×8，存於 `per_8h`）。OI 單位：Bitget／dYdX 為幣；Gate＝`position_size × quanto_multiplier`；Deribit 為 USD（只用於「有沒有 OI」，不跨所加總）。
+  注意：本機（box）對 Binance fapi 是 451，所以實際上第一個可用多半是 OKX；Bitget／Gate／dYdX 是 OKX 也掛掉時的備援。都沒有才 unavailable（規則 6 → SKIP）。
 - **BTC ETF 流量（嚴格模式）**：btcetfdata.com 的各檔基金 `dt`（issuer 公布日）常常不同步。程式只在 **9 檔全部 dt = 前一個美東交易日且無 error** 時才輸出加總，否則 unavailable 並列出落後基金。這是第三方彙整、單位 BTC，不等於 Farside 的 USD 淨流量；只用於判斷方向（正負）。實測 17:5x 時 FBTC、BITB、HODL 等仍停在 11/18，所以當下是 unavailable。美國假日時 dt 對不上也會 unavailable（保守）。
 - **總經事件**：Nasdaq 端點屬非正式文件的公開端點，可能改版；回傳 `No record found`（code 1002）視為當天無事件，其他異常視為 unavailable。關鍵字：CPI、PPI、Nonfarm/payroll、unemployment rate、PCE、GDP、FOMC、retail sales、ISM、jobless claims（排除 speaks、GDPNow、Dallas Fed）。
 - **S3 對 tape 的需求**：funding、OI、ETF 前一日流量、總經日程，四項都要有；ETH 因為沒有 ETF 流量來源，S3 的 ETH 部分會一直 SKIP。
