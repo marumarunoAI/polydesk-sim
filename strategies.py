@@ -32,14 +32,24 @@ def _hours_left(row, now):
     return (parse_iso(row["end_utc"]) - now).total_seconds() / 3600
 
 
+FUNDING_ORDER = ("binance_funding", "okx_funding", "deribit_funding", "hyperliquid_funding")
+OI_ORDER = ("binance_oi", "okx_oi", "hyperliquid_oi", "deribit_oi")
+
+
 def _funding_8h(ev_a):
-    """有任一免費來源的資金費率就用（Binance 優先，其次 Hyperliquid 換算 8h）。"""
-    b = ev_a["binance_funding"]
-    if not _na(b["value"]):
-        return b["value"], "binance"
-    h = ev_a["hyperliquid_funding"]
-    if not _na(h["value"]):
-        return h["per_8h"], "hyperliquid"
+    """資金費率（每 8h）：依序取第一個可用的免費來源（Binance、OKX、Deribit、Hyperliquid）。"""
+    for k in FUNDING_ORDER:
+        v = ev_a.get(k)
+        if v and not _na(v["value"]):
+            return (v["per_8h"] if k == "hyperliquid_funding" else v["value"]), k.split("_")[0]
+    return UNAVAILABLE, None
+
+
+def _oi(ev_a):
+    for k in OI_ORDER:
+        v = ev_a.get(k)
+        if v and not _na(v["value"]):
+            return v["value"], k.split("_")[0]
     return UNAVAILABLE, None
 
 
@@ -102,10 +112,10 @@ def decide_s3(fair, row, ev, now=None):
         return dict(d, decision="NO_EDGE", reason=f"|fair-mid| {abs(edge):.4f} <= fee+2pp {thr:.4f}")
     ea = ev["assets"][row["asset"]]
     f8, _ = _funding_8h(ea)
-    oi = ea["binance_oi"] if not _na(ea["binance_oi"]["value"]) else ea["hyperliquid_oi"]
-    missing = [n for n, v in (("funding", f8), ("open_interest", oi["value"]),
+    oi, _ = _oi(ea)
+    missing = [n for n, v in (("funding", f8), ("open_interest", oi),
                               ("etf_flow_prev_day", ea["etf_flow_prev_day"]["value"]),
-                              ("macro_releases_today", ev["global"]["macro_releases_today"]["value"]))
+                              ("macro_calendar", ev["global"]["macro_events_next8d"]["value"]))
                if _na(v)]
     if missing:
         return dict(d, decision="SKIP", reason=f"tape unavailable: {', '.join(missing)}")

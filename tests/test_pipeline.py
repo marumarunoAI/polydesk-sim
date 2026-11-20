@@ -22,10 +22,11 @@ FAIR = {"fair_yes": 0.60, "inputs_unavailable": [], "fomc_in_window": False}
 def ev(avail=True):
     v = lambda x: {"value": x if avail else "unavailable"}
     return {"assets": {"BTC": {"binance_funding": v(0.0001), "hyperliquid_funding": {"value": 0.00001, "per_8h": 0.00008},
-                               "binance_oi": v(1.0), "hyperliquid_oi": v(1.0),
+                               "binance_oi": v(1.0), "hyperliquid_oi": v(1.0), "okx_funding": v(0.0001), "okx_oi": v(1.0),
+                               "deribit_funding": v(0.0001), "deribit_oi": v(1.0),
                                "etf_flow_prev_day": v(100.0),
                                "liquidation_clusters": {"value": "unavailable", "reason": "no free source"}}},
-            "global": {"macro_releases_today": v("none")}}
+            "global": {"macro_events_next8d": v([])}}
 
 
 class PipelineTest(unittest.TestCase):

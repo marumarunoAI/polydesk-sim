@@ -46,6 +46,82 @@ def binance_oi(asset):
     return item(float(d["openInterest"]), url, asset)
 
 
+OKX = "https://www.okx.com/api/v5/public"
+DERIBIT_API = "https://www.deribit.com/api/v2/public"
+BTCETF = "https://btcetfdata.com/api/v1/current"
+NASDAQ_CAL = "https://api.nasdaq.com/api/calendar/economicevents"
+MACRO_KEYWORDS = ("consumer price", "cpi", "producer price", "ppi", "nonfarm", "unemployment rate",
+                  "pce", "gdp", "fomc", "retail sales", "ism ", "jobless claims", "payroll")
+
+
+def okx(asset):
+    """OKX 永續（公開 API，無需 key）：資金費率（換算成每 8h）與 OI。"""
+    inst = f"{asset}-USDT-SWAP"
+    fu = f"{OKX}/funding-rate?instId={inst}"
+    f = get_json(fu, retries=1)["data"][0]
+    hours = (int(f["nextFundingTime"]) - int(f["fundingTime"])) / 3.6e6
+    rate = float(f["fundingRate"])
+    oi_url = f"{OKX}/open-interest?instType=SWAP&instId={inst}"
+    o = get_json(oi_url, retries=1)["data"][0]
+    return (item(rate * 8 / hours, fu, "per 8h", raw_rate=rate, interval_hours=hours),
+            item(float(o["oiCcy"]), oi_url, asset, oi_usd=float(o["oiUsd"])))
+
+
+def deribit_perp(asset):
+    """Deribit 永續 ticker（公開 API）：funding_8h 與 open_interest。"""
+    url = f"{DERIBIT_API}/ticker?instrument_name={asset}-PERPETUAL"
+    r = get_json(url, retries=1)["result"]
+    return (item(float(r["funding_8h"]), url, "per 8h"),
+            item(float(r["open_interest"]), url, "USD notional (Deribit perp contracts)"))
+
+
+def btc_etf_prev_day():
+    """前一美東交易日美國現貨 BTC ETF 淨流量（BTC 數量，加總各檔 issuer 公布的持倉變化）。
+    來源 btcetfdata.com（第三方彙整 issuer 網站，免 key）。要求 9 檔全部 dt == 前一交易日
+    且無 error，否則 unavailable（不拿不完整的總和充數）。"""
+    from datetime import timedelta
+    from zoneinfo import ZoneInfo
+    from common import now_utc
+    d = get_json(BTCETF, retries=2)
+    et_today = now_utc().astimezone(ZoneInfo("America/New_York")).date()
+    prev = et_today - timedelta(days=1)
+    while prev.weekday() >= 5:
+        prev -= timedelta(days=1)
+    funds = d["data"]
+    late = {k: v["dt"] for k, v in funds.items() if v["dt"] != prev.isoformat() or v["error"]}
+    if late:
+        raise RuntimeError(f"incomplete: 前一交易日 {prev} 尚未全數公布，落後/錯誤的基金 {late}")
+    total = sum(v["change"] for v in funds.values())
+    return item(total, BTCETF, "BTC (sum of issuer holdings change)", trading_day=prev.isoformat(),
+                funds={k: v["change"] for k, v in funds.items()}, batch_ts=d.get("batch_ts"),
+                note="第三方彙整 issuer 網站；非 Farside 數字，單位為 BTC")
+
+
+def macro_events(days=8):
+    """Nasdaq 公開經濟日曆（api.nasdaq.com，非正式文件的公開端點）：未來 days 天美國高影響事件。
+    欄位標 gmt，但時間與實際發布時刻（美東）吻合，原樣記錄 raw_time。"""
+    from datetime import timedelta
+    from common import now_utc
+    out, base = [], now_utc().date()
+    for i in range(days):
+        day = base + timedelta(days=i)
+        url = f"{NASDAQ_CAL}?date={day.isoformat()}"
+        resp = get_json(url, retries=1, headers={"User-Agent": "Mozilla/5.0"})
+        if resp.get("data") is None:
+            codes = [c.get("code") for c in (resp.get("status") or {}).get("bCodeMessage") or []]
+            if 1002 in codes:  # "No record found" = 當天沒有事件（例如週日）
+                continue
+            raise RuntimeError(f"nasdaq calendar {day}: unexpected response {str(resp)[:150]}")
+        rows = resp["data"]["rows"] or []
+        for r in rows:
+            n = r["eventName"].lower()
+            if r["country"] == "United States" and any(k in n for k in MACRO_KEYWORDS) \
+                    and not any(x in n for x in ("speaks", "gdpnow", "dallas fed")):
+                out.append({"date": day.isoformat(), "raw_time": r["gmt"], "event": r["eventName"]})
+    return item(out, f"{NASDAQ_CAL}?date=<YYYY-MM-DD>", "US high-impact events",
+                note="raw_time 欄位標 gmt，實際對應美東發布時刻")
+
+
 def hyperliquid(assets):
     meta, ctxs = http_json("POST", HL, json={"type": "metaAndAssetCtxs"})
     out = {}
@@ -67,7 +143,13 @@ def deribit_dvol(asset):
                 "annualized")
 
 
-def farside(asset):
+def etf_flow(asset):
+    if asset == "BTC":
+        return btc_etf_prev_day()
+    raise RuntimeError("ETH 現貨 ETF 流量：Farside 403（Cloudflare）、SoSoValue 403，找不到免 key 且不被擋的公開來源")
+
+
+def farside(asset):  # 保留作為紀錄：Farside 目前被 Cloudflare 擋（403），不嘗試繞過
     url = FARSIDE[asset]
     r = _S.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
     if r.status_code != 200 or "Just a moment" in r.text[:2000]:
@@ -82,20 +164,31 @@ def collect():
     except Exception as e:
         hl = {a: {"funding": na(HL, str(e)[:200]), "oi": na(HL, str(e)[:200])} for a in ASSETS}
     for a in ASSETS:
+        okx_f, okx_o = (None, None)
+        try:
+            okx_f, okx_o = okx(a)
+        except Exception as e:
+            okx_f = okx_o = na(OKX, str(e)[:200])
+        der_f = der_o = None
+        try:
+            der_f, der_o = deribit_perp(a)
+        except Exception as e:
+            der_f = der_o = na(DERIBIT_API, str(e)[:200])
         ev["assets"][a] = {
             "binance_funding": _try(lambda: binance_funding(a), f"{BFUT}/premiumIndex"),
             "binance_oi": _try(lambda: binance_oi(a), f"{BFUT}/openInterest"),
             "hyperliquid_funding": hl.get(a, {}).get("funding", na(HL, "asset missing")),
             "hyperliquid_oi": hl.get(a, {}).get("oi", na(HL, "asset missing")),
+            "okx_funding": okx_f, "okx_oi": okx_o,
+            "deribit_funding": der_f, "deribit_oi": der_o,
             "deribit_dvol": _try(lambda: deribit_dvol(a), DERIBIT),
-            "etf_flow_prev_day": _try(lambda: farside(a), FARSIDE[a]),
+            "etf_flow_prev_day": _try(lambda: etf_flow(a), BTCETF),
             "liquidation_clusters": na("none", "沒有免費的清算熱力圖來源（文章用 Minara 付費工具）"),
             "exchange_flows": na("none", "沒有免費的交易所流向來源"),
         }
     ev["global"]["fomc_decision_days"] = _try(
         lambda: item(fomc_decision_days(), FOMC_URL), FOMC_URL)
-    ev["global"]["macro_releases_today"] = na(
-        "https://www.bls.gov/schedule/", "BLS 發布日程頁擋自動抓取（HTTP 403），沒有其他免費 API")
+    ev["global"]["macro_events_next8d"] = _try(macro_events, NASDAQ_CAL)
     return ev
 
 
