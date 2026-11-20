@@ -11,3 +11,5 @@ tickets/*.json
 journal/*.csv
 journal/halt_*
 journal/*.md
+validation/
+tickets/test/

@@ -141,8 +141,11 @@ def apply_fills(t, trades, yes_book, now=None):
     # 與成交紀錄可能是同一筆流動性，保守取兩者較大值而非相加。
     visible = sum(s for px, s in sellers if px <= L + 1e-9)
     claimed = t.get("crossed_claimed", 0.0)
-    crossed = max(0.0, visible - claimed)
+    new_visible = max(0.0, visible - claimed)
     t["crossed_claimed"] = visible
+    # 排在我們前面的買單（queue_ahead）會先吃掉穿價的賣單，剩下的才輪到我們
+    crossed = max(0.0, new_visible - t["queue_ahead"])
+    t["queue_ahead"] = max(0.0, t["queue_ahead"] - new_visible)
     trade_ev = through + at_ours
     got = min(remaining, max(trade_ev, crossed))
     if got > 0:

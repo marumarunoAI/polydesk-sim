@@ -106,6 +106,14 @@ class SimTest(unittest.TestCase):
         t = sim.apply_fills(t, [], book)  # 穿價消失後再出現 → 重新認領
         self.assertEqual(t["filled_shares"], 10)
 
+    def test_crossed_depth_respects_queue_ahead(self):
+        t, _ = sim.place("q1", "S1", MKT, "YES", 0.30, 10, 3.0, BOOK)  # 同價排隊 5
+        self.assertEqual(t["queue_ahead"], 5)
+        book = {"bids_top5": [], "asks_top5": [{"price": 0.30, "size": 8}]}
+        t = sim.apply_fills(t, [], book)
+        self.assertEqual(t["filled_shares"], 3)  # 8 − 前面的 5
+        self.assertEqual(t["queue_ahead"], 0)
+
     def test_trades_after_cancel_time_ignored(self):
         t = dict(self.t, cancel_at_epoch=self.t0 + 5)
         t = sim.apply_fills(t, [tr("Yes", "SELL", 0.20, 10, self.t0 + 6)], BOOK)
