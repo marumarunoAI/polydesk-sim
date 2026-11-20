@@ -1,0 +1,31 @@
+{
+  "slug": "ethereum-above-1700-on-november-22-2026",
+  "kind": "above",
+  "asset": "ETH",
+  "direction": "up",
+  "level": 1700.0,
+  "end_utc": "2026-11-22T17:00:00Z",
+  "fair_yes": 0.765241,
+  "model": "N(d2)",
+  "spot": 1758.99,
+  "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT (1h×720, 1d×1000) + ticker/price",
+  "spot_ts": {
+    "utc": "2026-11-20T10:54:38Z",
+    "taipei": "2026-11-20T18:54:38+08:00",
+    "epoch": 1795172078.325895
+  },
+  "sigma": 0.5818142529202665,
+  "sigma_source": "binance_realized_1h_30d",
+  "T_years": 0.006175,
+  "fomc_in_window": false,
+  "base_rate": 0.7422,
+  "base_rate_samples": 997,
+  "inputs_unavailable": [],
+  "blind_file": "blind/ethereum-above-1700-on-november-22-2026.json",
+  "date_taipei": "2026-11-20",
+  "ts": {
+    "utc": "2026-11-20T10:54:38Z",
+    "taipei": "2026-11-20T18:54:38+08:00",
+    "epoch": 1795172078.447339
+  }
+}
