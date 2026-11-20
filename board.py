@@ -9,16 +9,14 @@ import os
 import re
 import sys
 
+import risk_gate
+
 from common import (DIRS, UNAVAILABLE, get_json, http_json, iso_tpe, iso_utc,
                     now_utc, parse_iso, stamp, write_json)
 
 GAMMA = "https://gamma-api.polymarket.com"
 CLOB = "https://clob.polymarket.com"
 TAGS = {"BTC": 235, "ETH": 39}  # Gamma tag id: bitcoin / ethereum
-SHORT_RECURRENCE = {"5m", "15m", "hourly", "4h"}
-SHORT_TAGS = {"5m", "15m", "1h", "4h", "hourly"}
-BANNED_TAGS = {"sports", "politics", "elections", "election", "us-election",
-               "geopolitics", "world-elections", "global-elections"}
 DEPTH_LEVELS = 5
 
 RE_REACH = re.compile(
@@ -49,13 +47,8 @@ def classify(question):
 
 def excluded(event):
     """短於日線、體育、選舉、政治 → True。"""
-    tags = {(t.get("slug") or "").lower() for t in event.get("tags") or []}
-    rec = {(s.get("recurrence") or "").lower() for s in event.get("series") or []}
-    if rec & SHORT_RECURRENCE or tags & SHORT_TAGS:
-        return "shorter than daily"
-    if tags & BANNED_TAGS:
-        return "sports/election/politics"
-    return None
+    return risk_gate.excluded([t.get("slug") for t in event.get("tags") or []],
+                              [s.get("recurrence") for s in event.get("series") or []])
 
 
 def resolution_source(m, e):
