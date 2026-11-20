@@ -19,6 +19,15 @@ from common import DIRS, ROOT, UNAVAILABLE, iso_tpe, now_utc, read_json, stamp, 
 
 VDIR = os.path.join(ROOT, "validation")
 STATE = os.path.join(VDIR, "state.json")
+
+
+def set_workdir(path):
+    """把驗證用的暫存（測試單、raw、log）放到 repo 以外，避免 git clean 之類的動作誤刪。"""
+    global VDIR, STATE
+    VDIR = os.path.abspath(path)
+    STATE = os.path.join(VDIR, "state.json")
+    DIRS["tickets"] = os.path.join(VDIR, "tickets")
+    os.makedirs(DIRS["tickets"], exist_ok=True)
 N_MARKETS = 4
 SHARES = 10.0
 
@@ -182,5 +191,8 @@ if __name__ == "__main__":
     ap.add_argument("--hours", type=float, default=3.0)
     ap.add_argument("--poll", type=float, default=60.0)
     ap.add_argument("--no-publish", action="store_true")
+    ap.add_argument("--workdir", help="暫存資料夾（建議放 repo 外）")
     a = ap.parse_args()
+    if a.workdir:
+        set_workdir(a.workdir)
     sys.exit(run(a.hours, a.poll, not a.no_publish))
