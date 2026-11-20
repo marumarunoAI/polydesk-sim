@@ -42,6 +42,10 @@
 | **清算熱力圖／清算叢集** | 無免費來源 | — | **unavailable，不用任何代理指標頂替** |
 | 交易所流向、盤前價 | 無免費來源 | — | unavailable |
 
+## OKX pre_market（S4 v2 證據，僅記錄）
+- 實測 2026-11-20 18:45–18:46（台北）：`/api/v5/public/instruments?instType=SWAP` **200**，546 檔合約，其中 `ruleType=pre_market` 共 3 檔（MOONSHOT、OPENAI、OURA 的 `-USDT-SWAP`，皆 `state=live`）；逐檔 `/api/v5/market/ticker` **200**，例：OPENAI-USDT-SWAP last 120.69／bid 120.59／ask 120.66（USDT／單位標的，**不是 FDV**，換成 FDV 需要供給量，留給 v2）。
+- 寫入位置：`evidence/latest.json` 的 `global.okx_premarket`（每檔附 `source` URL 與 `fetched_at`；整體標 `reference_only`）。抓不到或單檔失敗寫 unavailable 與原因。**沒有任何策略／風控程式讀這個鍵**（有測試鎖住）。
+
 ## 使用細節
 - **資金費率**取用順序（`strategies.FUNDING_ORDER`）：Binance → OKX → Bitget → Gate → Deribit → Hyperliquid → dYdX，取第一個可用的；**OI** 順序（`OI_ORDER`）：Binance → OKX → Bitget → Gate → Hyperliquid → Deribit → dYdX。所有來源的值都留在 evidence 供對照，每筆帶 `source` URL 與 `fetched_at`。
   換算：OKX 依 `nextFundingTime − fundingTime`；Bitget 依 `fundingRateInterval`；Gate 依 `funding_interval`（秒）；dYdX `nextFundingRate` 為每 1h（×8）；Hyperliquid 為每 1h（×8，存於 `per_8h`）。OI 單位：Bitget／dYdX 為幣；Gate＝`position_size × quanto_multiplier`；Deribit 為 USD（只用於「有沒有 OI」，不跨所加總）。

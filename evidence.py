@@ -113,6 +113,35 @@ def dydx(asset):
     return (item(rate * 8, url, "per 8h", raw_rate_1h=rate, interval_hours=1),
             item(float(m["openInterest"]), url, asset))
 
+def okx_premarket():
+    """OKX pre_market 永續（S4 盤前價的 v2 來源；v1 只留證據，不接任何策略）。
+    列出 ruleType=pre_market 的合約，再逐一抓 ticker。價格單位＝USDT／單位標的（不是 FDV，換算需要供給量，v2 再說）。
+    抓不到就 unavailable；單一合約 ticker 失敗只標那一檔。"""
+    iurl = f"{OKX}/instruments?instType=SWAP"
+    ins = get_json(iurl, retries=1)
+    if ins.get("code") != "0":
+        raise RuntimeError(f"OKX instruments code={ins.get('code')} msg={ins.get('msg')}")
+    pm = [x for x in ins["data"] if x.get("ruleType") == "pre_market"]
+    out = []
+    for x in pm:
+        turl = f"https://www.okx.com/api/v5/market/ticker?instId={x['instId']}"
+        rec = {"instId": x["instId"], "state": x.get("state"), "listTime_ms": x.get("listTime"),
+               "ctVal": x.get("ctVal"), "ctValCcy": x.get("ctValCcy"), "settleCcy": x.get("settleCcy"),
+               "source": turl}
+        try:
+            t = get_json(turl, retries=1)
+            if t.get("code") != "0" or not t.get("data"):
+                raise RuntimeError(f"code={t.get('code')} msg={t.get('msg')}")
+            t = t["data"][0]
+            rec.update(last=float(t["last"]), bid=float(t["bidPx"]) if t.get("bidPx") else None,
+                       ask=float(t["askPx"]) if t.get("askPx") else None,
+                       vol24h=t.get("vol24h"), ticker_ts_ms=t["ts"], fetched_at=stamp())
+        except Exception as e:
+            rec.update(last=UNAVAILABLE, reason=str(e)[:200], fetched_at=stamp())
+        out.append(rec)
+    return item(out, iurl, "USDT per underlying unit (not FDV)", reference_only=True,
+                note="S4（v2）盤前價來源的證據；v1 無任何策略讀取", n_instruments=len(out))
+
 
 def deribit_perp(asset):
     """Deribit 永續 ticker（公開 API）：funding_8h 與 open_interest。"""
@@ -243,6 +272,7 @@ def collect():
     ev["global"]["fomc_decision_days"] = _try(
         lambda: item(fomc_decision_days(), FOMC_URL), FOMC_URL)
     ev["global"]["macro_events_next8d"] = _try(macro_events, NASDAQ_CAL)
+    ev["global"]["okx_premarket"] = _try(okx_premarket, f"{OKX}/instruments?instType=SWAP")
     return ev
 
 

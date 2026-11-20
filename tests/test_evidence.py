@@ -165,3 +165,48 @@ class FundingOrderTest(unittest.TestCase):
         ea["gate_oi"] = na
         ea["dydx_oi"] = _v(195.0)
         self.assertEqual(strategies._oi(ea), (195.0, "dydx"))
+
+
+class OkxPremarketTest(unittest.TestCase):
+    INS = {"code": "0", "data": [
+        {"instId": "AAA-USDT-SWAP", "ruleType": "pre_market", "state": "live", "listTime": "1", "ctVal": "1", "ctValCcy": "AAA", "settleCcy": "USDT"},
+        {"instId": "BTC-USDT-SWAP", "ruleType": "normal", "state": "live"},
+        {"instId": "BBB-USDT-SWAP", "ruleType": "pre_market", "state": "live", "listTime": "2"}]}
+
+    def _fake(self, fail_bbb=False):
+        def f(url, **k):
+            if "instruments" in url:
+                return self.INS
+            if "BBB" in url and fail_bbb:
+                raise RuntimeError("HTTP 500")
+            return {"code": "0", "data": [{"last": "12.5", "bidPx": "12.4", "askPx": "12.6", "vol24h": "9", "ts": "1795"}]}
+        return f
+
+    def test_only_pre_market_listed_with_source_and_time(self):
+        with mock.patch.object(evidence, "get_json", self._fake()):
+            r = evidence.okx_premarket()
+        ids = [x["instId"] for x in r["value"]]
+        self.assertEqual(ids, ["AAA-USDT-SWAP", "BBB-USDT-SWAP"])
+        self.assertEqual(r["value"][0]["last"], 12.5)
+        self.assertIn("ticker?instId=AAA", r["value"][0]["source"])
+        self.assertIn("utc", r["value"][0]["fetched_at"])
+        self.assertTrue(r["reference_only"])
+
+    def test_single_ticker_failure_marks_only_that_one(self):
+        with mock.patch.object(evidence, "get_json", self._fake(fail_bbb=True)):
+            r = evidence.okx_premarket()
+        self.assertEqual(r["value"][0]["last"], 12.5)
+        self.assertEqual(r["value"][1]["last"], "unavailable")
+        self.assertIn("HTTP 500", r["value"][1]["reason"])
+
+    def test_instruments_failure_raises(self):
+        with mock.patch.object(evidence, "get_json", lambda *a, **k: {"code": "50000", "msg": "x"}):
+            with self.assertRaises(RuntimeError):
+                evidence.okx_premarket()
+
+    def test_not_wired_into_strategies(self):
+        import os
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        for fn in ("strategies.py", "risk_gate.py", "quant.py", "sim.py", "exits.py", "run_day.py"):
+            with open(os.path.join(root, fn), encoding="utf-8") as fh:
+                self.assertNotIn("okx_premarket", fh.read(), fn)
