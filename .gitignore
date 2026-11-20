@@ -13,3 +13,4 @@ journal/halt_*
 journal/*.md
 validation/
 tickets/test/
+validation_run.out
