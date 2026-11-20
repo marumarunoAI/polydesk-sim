@@ -65,7 +65,7 @@ def place(tid, strategy, market, outcome, limit, shares, usd, yes_book,
         "placed_at": stamp(), "end_utc": market["end_utc"],
         "cancel_at_epoch": cancel_at_epoch or end.timestamp() - CANCEL_BEFORE_H.get(strategy, 0) * 3600,
         "is_test": bool(is_test), "seen_trades": {},
-        "queue_ahead": queue, "status": "open", "filled_shares": 0.0,
+        "queue_ahead": queue, "initial_queue": queue, "status": "open", "filled_shares": 0.0,
         "fill_cost": 0.0, "fee_paid": 0.0, "fee_rate_maker": fees.MAKER_FEE_RATE,
         "last_checked_epoch": None, "fills": [],
     }
@@ -74,16 +74,19 @@ def place(tid, strategy, market, outcome, limit, shares, usd, yes_book,
 
 
 def fetch_trades(condition_id, since_epoch, max_pages=10):
+    """某 condition 在 since_epoch 之後的 taker 成交（新到舊翻頁）。
+    翻頁時 cursor 不含 condition 篩選，必須每頁都重送 condition，否則會拿到別的市場的成交。"""
     out, cur = [], None
     for _ in range(max_pages):
         params = {"condition": condition_id, "limit": 500, "taker_only": "true"}
         if cur:
-            params = {"cursor": cur}
+            params["cursor"] = cur
         d = get_json(DATA_API, params=params)
-        rows = d.get("data") or []
+        rows = [r for r in d.get("data") or [] if r.get("condition_id") == condition_id]
         out += [r for r in rows if r["timestamp"] > since_epoch]
         cur = (d.get("pagination") or {}).get("next_cursor")
-        if not rows or rows[-1]["timestamp"] <= since_epoch or not cur:
+        raw_rows = d.get("data") or []
+        if not raw_rows or raw_rows[-1]["timestamp"] <= since_epoch or not cur:
             break
     return out
 
@@ -110,8 +113,8 @@ def apply_fills(t, trades, yes_book, now=None):
     # 成交紀錄 API 有索引延遲：每次都從掛單時間重看，用 seen_trades 去重（避免漏掉晚到的成交）
     batch = {}
     for tr in trades:
-        if tr["timestamp"] <= placed:
-            continue
+        if tr["timestamp"] <= placed or tr["timestamp"] > t["cancel_at_epoch"]:
+            continue  # 掛單前、或撤單時間之後的成交都與我們無關
         batch[trade_key(tr)] = batch.get(trade_key(tr), 0) + 1
     seen = t.setdefault("seen_trades", {})
     new_counts = {}
@@ -121,7 +124,7 @@ def apply_fills(t, trades, yes_book, now=None):
             seen[k] = n
     for tr in trades:
         k = trade_key(tr)
-        if tr["timestamp"] <= placed or new_counts.get(k, 0) <= 0:
+        if tr["timestamp"] <= placed or tr["timestamp"] > t["cancel_at_epoch"] or new_counts.get(k, 0) <= 0:
             continue
         new_counts[k] -= 1
         px = trade_px_for(t["outcome"], tr)
@@ -134,12 +137,19 @@ def apply_fills(t, trades, yes_book, now=None):
     at_ours = max(0.0, at - t["queue_ahead"])
     t["queue_ahead"] = max(0.0, t["queue_ahead"] - at)
     sellers, _ = book_side_for(t["outcome"], yes_book or {})
-    crossed = sum(s for px, s in sellers if px <= L + 1e-9)
-    got = min(remaining, through + at_ours + crossed)
+    # 簿深穿價：同一批可見流動性只算一次（crossed_claimed 記已認領量；穿價消失就歸零）。
+    # 與成交紀錄可能是同一筆流動性，保守取兩者較大值而非相加。
+    visible = sum(s for px, s in sellers if px <= L + 1e-9)
+    claimed = t.get("crossed_claimed", 0.0)
+    crossed = max(0.0, visible - claimed)
+    t["crossed_claimed"] = visible
+    trade_ev = through + at_ours
+    got = min(remaining, max(trade_ev, crossed))
     if got > 0:
         t["fills"].append({"at": stamp(now), "shares": round(got, 4), "price": L,
                            "basis": {"trades_through": through, "trades_at_limit_after_queue": at_ours,
                                      "book_crossed_depth": crossed}})
+        t["crossed_claimed"] = max(t["crossed_claimed"], 0.0)
         t["filled_shares"] = round(t["filled_shares"] + got, 4)
         t["fill_cost"] = round(t["fill_cost"] + got * L, 6)
         t["fee_paid"] += fees.maker_fee(got, L)
@@ -163,14 +173,16 @@ def open_tickets():
 
 
 def check_all(board_rows):
-    """對每張未完成 ticket 用真實成交 + 目前訂單簿判定成交。board_rows: {slug: row}。"""
+    """對每張未完成 ticket 用真實成交 + 目前訂單簿判定成交。board_rows: {slug: row}。
+    成交紀錄 API 失敗 → 這張單本輪完全不更新（不推進 last_checked_epoch、不撤單），下輪再補。"""
     done = []
     for t in open_tickets():
         try:
             trades = fetch_trades(t["condition_id"], (t["last_checked_epoch"] or t["placed_at"]["epoch"]) - 900)
         except Exception as e:
             t.setdefault("errors", []).append(f"{stamp()['utc']} trades unavailable: {e}")
-            trades = []
+            write_json(ticket_path(t["id"]), t)
+            continue
         row = board_rows.get(t["slug"]) or {}
         apply_fills(t, trades, row.get("yes_book"))
         write_json(ticket_path(t["id"]), t)

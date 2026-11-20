@@ -91,6 +91,52 @@ class SimTest(unittest.TestCase):
         self.assertTrue(t["is_test"])
         self.assertNotIn("tt", [x["id"] for x in sim.open_tickets()])
 
+    def test_crossed_depth_not_recounted_each_poll(self):
+        book = {"bids_top5": [{"price": 0.28, "size": 5}],
+                "asks_top5": [{"price": 0.30, "size": 4}, {"price": 0.31, "size": 100}]}
+        t = sim.apply_fills(self.t, [], book)
+        self.assertEqual(t["filled_shares"], 4)
+        t = sim.apply_fills(t, [], book)  # 同一批流動性還在簿上
+        t = sim.apply_fills(t, [], book)
+        self.assertEqual(t["filled_shares"], 4)
+        bigger = {"bids_top5": [], "asks_top5": [{"price": 0.30, "size": 7}]}
+        t = sim.apply_fills(t, [], bigger)  # 多出來的 3 才算新的
+        self.assertEqual(t["filled_shares"], 7)
+        t = sim.apply_fills(t, [], {"bids_top5": [], "asks_top5": [{"price": 0.5, "size": 1}]})
+        t = sim.apply_fills(t, [], book)  # 穿價消失後再出現 → 重新認領
+        self.assertEqual(t["filled_shares"], 10)
+
+    def test_trades_after_cancel_time_ignored(self):
+        t = dict(self.t, cancel_at_epoch=self.t0 + 5)
+        t = sim.apply_fills(t, [tr("Yes", "SELL", 0.20, 10, self.t0 + 6)], BOOK)
+        self.assertEqual(t["filled_shares"], 0)
+
+    def test_check_all_trade_api_failure_does_not_advance(self):
+        from unittest import mock
+        before = sim.open_tickets()[0]["last_checked_epoch"]
+        with mock.patch.object(sim, "fetch_trades", side_effect=RuntimeError("boom")):
+            self.assertEqual(sim.check_all({}), [])
+        t = sim.open_tickets()[0]
+        self.assertEqual(t["last_checked_epoch"], before)
+        self.assertEqual(t["status"], "open")
+        self.assertIn("boom", t["errors"][0])
+
+    def test_fetch_trades_pagination_keeps_condition(self):
+        from unittest import mock
+        seen = []
+        pages = [{"data": [{"condition_id": "0xc", "timestamp": 100}, {"condition_id": "0xc", "timestamp": 90}],
+                  "pagination": {"next_cursor": "c1"}},
+                 {"data": [{"condition_id": "0xc", "timestamp": 80}, {"condition_id": "0xOTHER", "timestamp": 70}],
+                  "pagination": {"next_cursor": None}}]
+        def fake(url, params=None, **kw):
+            seen.append(dict(params))
+            return pages[len(seen) - 1]
+        with mock.patch.object(sim, "get_json", fake):
+            out = sim.fetch_trades("0xc", 0)
+        self.assertTrue(all(p["condition"] == "0xc" for p in seen))
+        self.assertEqual(seen[1]["cursor"], "c1")
+        self.assertEqual([r["timestamp"] for r in out], [100, 90, 80])
+
     def test_cancel_before_expiry(self):
         t = dict(self.t, cancel_at_epoch=self.t0 + 5)
         t = sim.apply_fills(t, [], BOOK, now=common.now_utc() + timedelta(seconds=10))
