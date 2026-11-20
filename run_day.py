@@ -11,6 +11,7 @@ from common import DIRS, UNAVAILABLE, now_utc, read_json, stamp, today_tpe
 import blind
 import board
 import evidence
+import exits
 import gate
 import journal
 import quant
@@ -33,25 +34,41 @@ def strategies_for(m, fair):
 
 
 def exposure_and_pnl(rows_by_slug):
-    """由 tickets 算目前曝險（已成交 + 掛單中）與當日損益（今日已實現 + 未實現按 mid）。"""
+    """由 tickets 算目前曝險（持有 + 掛單中）與當日損益（今日已實現 + 未實現按 mid）。
+    出場單不算曝險；已賣出的部分不再算持有，其出場收入計入已實現。"""
     import glob
     exp = {"by_market": collections.Counter(), "by_asset_barrier": collections.Counter()}
     day = today_tpe()
     pnl = 0.0
+    exits = {}
     for p in glob.glob(os.path.join(DIRS["tickets"], "*.json")):
         t = read_json(p)
+        if t.get("is_exit"):
+            exits[t["exit_of"]] = t
+    for p in glob.glob(os.path.join(DIRS["tickets"], "*.json")):
+        t = read_json(p)
+        if t.get("is_exit"):
+            continue
         if t["status"] == "settled":
             if t.get("settled_date_taipei") == day:
                 pnl += t.get("pnl", 0.0)
             continue
-        live = t["fill_cost"] + (t["shares"] - t["filled_shares"]) * t["limit_price"] \
-            if t["status"] in ("open", "partial") else t["fill_cost"]
+        x = exits.get(t["id"])
+        sold = x["filled_shares"] if x else 0.0
+        avg = t["fill_cost"] / t["filled_shares"] if t["filled_shares"] else 0.0
+        held = t["filled_shares"] - sold
+        pending = (t["shares"] - t["filled_shares"]) * t["limit_price"] if t["status"] in ("open", "partial") else 0.0
+        live = held * avg + pending
         exp["by_market"][t["slug"]] += live
         exp["by_asset_barrier"][t["asset"]] += live
+        if x:
+            for f in x["fills"]:
+                if f["at"]["taipei"][:10] == day:
+                    pnl += f["shares"] * ((1 - f["price"]) - avg)
         mid = (rows_by_slug.get(t["slug"]) or {}).get("yes_book", {}).get("mid", UNAVAILABLE)
-        if t["filled_shares"] > 0 and mid != UNAVAILABLE:
+        if held > 0 and mid != UNAVAILABLE:
             m = mid if t["outcome"] == "YES" else 1 - mid
-            pnl += t["filled_shares"] * m - t["fill_cost"]
+            pnl += held * m - held * avg
     return exp, pnl
 
 
@@ -87,6 +104,11 @@ def main():
 
     checked = sim.check_all(rows)
     print(f"[sim] 檢查先前 tickets {len(checked)} 張")
+
+    ex = exits.run(rows, fairs, ev, now_utc())
+    for pid, why, status in ex:
+        print(f"[exit] {pid}: {why} → {status}")
+    print(f"[exit] 檢查出場條件，觸發 {len(ex)} 筆")
 
     exposure, day_pnl = exposure_and_pnl(rows)
     halted = risk_gate.check_daily_loss(day_pnl, day)

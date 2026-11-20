@@ -45,7 +45,7 @@ def book_side_for(outcome, yes_book):
 
 
 def place(tid, strategy, market, outcome, limit, shares, usd, yes_book,
-          is_test=False, cancel_at_epoch=None):
+          is_test=False, cancel_at_epoch=None, extra=None):
     """建立 ticket（冪等：同 id 已存在就不重建）。is_test=True 的單不計入績效與風控。"""
     p = ticket_path(tid, is_test)
     if os.path.exists(p):
@@ -70,6 +70,7 @@ def place(tid, strategy, market, outcome, limit, shares, usd, yes_book,
         "fee_source": fees.fee_source(), "maker_rebate_rate": fees.maker_rebate_rate(),
         "last_checked_epoch": None, "fills": [],
     }
+    t.update(extra or {})
     write_json(p, t)
     return t, True
 
@@ -192,3 +193,59 @@ def check_all(board_rows):
         write_json(ticket_path(t["id"]), t)
         done.append(t)
     return done
+
+
+# ---------- 中途出場（maker 賣單，鏡像成交） ----------
+def exit_id(parent_id):
+    return f"{parent_id}_EXIT"
+
+
+def read_exit(parent_id):
+    p = ticket_path(exit_id(parent_id))
+    return read_json(p) if os.path.exists(p) else None
+
+
+def exit_proceeds(x):
+    """出場單已成交部分的收入（鏡像買單成本換算回賣出收入）。"""
+    return x["filled_shares"] - x["fill_cost"]
+
+
+def place_exit(parent, market, yes_book, reason, now=None):
+    """對已成交部位掛 maker 賣單（不假設以 mid 成交）。
+
+    賣出 outcome O @ S，在統一訂單簿裡等同「買相反 outcome @ 1−S」的 maker 買單，成交判定因此
+    完全重用 apply_fills（真實 taker 成交穿過/等於限價＋排隊，或簿深穿價）。
+    掛價：自家這一側最佳賣價 − 1 tick（不碰最佳買價）；價差只有 1 tick 就掛在最佳賣價排隊。
+    回傳 (exit_ticket, created)。"""
+    held = parent["filled_shares"]
+    if held <= 0:
+        raise ValueError("no filled position to exit")
+    yb = market["yes_book"]
+    tick = float(market["tick_size"]) if market.get("tick_size") not in (None, "unavailable") else 0.01
+    if parent["outcome"] == "YES":
+        bid, ask = yb["best_bid"], yb["best_ask"]
+    else:
+        bid = 1 - yb["best_ask"] if yb["best_ask"] != "unavailable" else "unavailable"
+        ask = 1 - yb["best_bid"] if yb["best_bid"] != "unavailable" else "unavailable"
+    if "unavailable" in (bid, ask):
+        raise ValueError("one-sided book: cannot price a maker exit")
+    sell = ask - tick if ask - tick > bid + 1e-9 else ask
+    sell = round(round(sell / tick) * tick, 6)
+    mirror_outcome = "NO" if parent["outcome"] == "YES" else "YES"
+    mirror_limit = round(1 - sell, 6)
+    # 賣單不得先被當成吃單：place() 會檢查鏡像買單是否穿價
+    t, created = place(exit_id(parent["id"]), parent["strategy"], market, mirror_outcome, mirror_limit,
+                       held, round(held * mirror_limit, 2), yb,
+                       cancel_at_epoch=parse_iso(market["end_utc"]).timestamp(),
+                       extra={"is_exit": True, "exit_of": parent["id"], "exit_reason": reason,
+                              "sell_outcome": parent["outcome"], "sell_price": sell,
+                              "order_type": "maker_limit_sell (simulated, mirrored as opposite-side buy)"})
+    return t, created
+
+
+def cancel_entry_remainder(parent):
+    """出場訊號出現時，撤掉進場單還沒成交的部分。"""
+    if parent["status"] in ("open", "partial"):
+        parent["status"] = "cancelled" if parent["filled_shares"] == 0 else "partial_cancelled"
+        write_json(ticket_path(parent["id"]), parent)
+    return parent

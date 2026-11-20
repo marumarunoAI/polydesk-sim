@@ -6,6 +6,7 @@ import os
 
 from common import DIRS, get_json, now_utc, parse_iso, read_json, today_tpe, write_json
 import journal
+import sim
 
 GAMMA = "https://gamma-api.polymarket.com/markets"
 
@@ -62,7 +63,13 @@ def run():
         t = tickets.get(r["ticket_id"])
         if t:
             won = (y == 1) == (t["outcome"] == "YES")
-            pnl = t["filled_shares"] * (1.0 if won else 0.0) - t["fill_cost"] - t["fee_paid"]
+            x = tickets.get(sim.exit_id(t["id"]))  # 中途出場：已賣出部分按出場收入，其餘持有到結算
+            sold = x["filled_shares"] if x else 0.0
+            proceeds = sim.exit_proceeds(x) if x else 0.0
+            held = t["filled_shares"] - sold
+            pnl = proceeds + held * (1.0 if won else 0.0) - t["fill_cost"] - t["fee_paid"] \
+                - (x["fee_paid"] if x else 0.0)
+            t["exited_shares"] = sold
             t["status"] = "settled"
             t["result"] = y
             t["pnl"] = round(pnl, 4)
