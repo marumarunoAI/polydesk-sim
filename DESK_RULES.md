@@ -73,3 +73,28 @@ https://x.com/Argona0x/status/2121600686374699125 （原文存於 argona_article
 
 ## 每週檢查（每週日）
 用 journal 計算各策略 `brier_desk` 對 `brier_market` 與虛擬損益；打輸市場的策略觸發其停用規則，並記錄在 journal。
+
+---
+
+## 附錄：實作參數（v1.1，實作細節，**不是規則修改**）
+以下是程式員為了讓規則能執行而定的操作值，經 PM模擬-負責人確認（2026-11-20）。正文規則一字未動；要改這些值請由負責人決定。
+
+| 項目 | 實作值 | 程式位置 |
+|---|---|---|
+| 歷史基準率 | 只記在 `fair/<slug>.json`（`base_rate`），**不混進 fair 數字**，fair 只用公式 | `quant.base_rate()` |
+| S2「遠檔位」 | `fair_touch ≤ 10%` 且 市場 YES ≥ 2 × fair | `strategies.FAR_STRIKE_MAX_FAIR` |
+| S2 資金費率極端 | `|funding| ≥ 5 × 0.01%/8h` | `strategies.FUNDING_EXTREME_8H` |
+| S3 tape 否決 | 資金費率與前一日 ETF 淨流量**同時**與交易方向相反才否決 | `strategies.decide_s3()` |
+| S3 鏡像區間 | hit/above 比值 < 1.6 或 > 2.4 標記 | `strategies.MIRROR_LO/HI` |
+| Kelly 倍數 | 0.10（允許範圍 0.10–0.25） | `risk_gate.KELLY_MULT` |
+| 單一 barrier 上限 | 3% 資金 | `risk_gate.MAX_PER_BARRIER` |
+| 同資產合計上限 | reach + above 同資產**合併**計 6%；BTC、ETH 各自計 | `risk_gate.MAX_ASSET_BARRIERS` |
+| 確定性部位 | 2–5%（S5，第一版未啟用） | `risk_gate.CERTAIN_*` |
+| 買價上限 | 絕不在 0.97 以上買 | `risk_gate.MAX_BUY_PRICE` |
+| 每日虧損停機 | 當日損益 ≤ −2% 資金 → 當日唯讀（以台北日計） | `risk_gate.check_daily_loss()` |
+| 進場門檻 | `|fair − mid| > 0.07·mid·(1−mid) + 2pp`（fee 取 taker 公式，保守）；模擬成交實際收 maker 費 0 | `strategies._base()`、`fees.py` |
+| maker 掛價 | 同側最佳買價 +1 tick，不碰對手最佳賣價，且不高於 `fair側 − 門檻`、不高於 0.97 | `strategies.limit_for()` |
+| 波動率 σ | Binance 1h K 線 720 根（30 天）實現波動率；窗口內有 FOMC 決議日 → Deribit DVOL | `quant.price_one()` |
+| 觸價已發生 | 上架後 Binance 已觸及關卡 → fair = 1 | `quant.extremes_since()` |
+| 市場範圍 | BTC/ETH 觸價（reach/hit/dip）與同日 above；排除 5m/15m/1h/4h、體育、選舉、政治 | `board.py`、`risk_gate.excluded()` |
+| 出場 | 見 v1.1 `exits.py`（邊際 < 0.5pp、到期前 24h、S2 否決出現） | 待實作時補列 |
