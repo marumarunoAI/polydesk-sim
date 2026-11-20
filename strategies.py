@@ -10,6 +10,28 @@ import risk_gate
 FAR_STRIKE_MAX_FAIR = 0.10   # S2「遠檔位」：fair_touch ≤ 10%（程式員的操作定義，負責人可改）
 FUNDING_EXTREME_8H = 5 * 0.0001  # S2 否決：|資金費率| ≥ 5 × 0.01%/8h
 MIRROR_LO, MIRROR_HI = 1.6, 2.4
+LIQ_CLUSTER_MIN_USD = 10e9   # S1「≥ $10B 清算叢集」（DESK_RULES S1）
+LIQ_NEAR_PCT = 0.03          # S2 否決「關卡附近」的操作定義：關卡 ±3% 內（負責人可改）
+
+
+def liq_clusters_value(ea):
+    """清算叢集介面。evidence 的 liquidation_clusters.value 若有值，格式為
+    [{"price": float, "usd": float}, ...]（價格水平與該水平上的預估清算金額）；
+    資料源缺 → unavailable（呼叫端必須 SKIP，不用任何代理指標頂替）。"""
+    liq = ea["liquidation_clusters"]
+    if _na(liq["value"]):
+        return UNAVAILABLE, liq.get("reason")
+    return liq["value"], None
+
+
+def liq_between(clusters, spot, level):
+    """價格 spot 與關卡 level 之間（含關卡）的清算總額。"""
+    lo, hi = sorted((spot, level))
+    return sum(c["usd"] for c in clusters if lo <= c["price"] <= hi)
+
+
+def liq_near(clusters, level, pct=LIQ_NEAR_PCT):
+    return sum(c["usd"] for c in clusters if abs(c["price"] / level - 1) <= pct)
 
 
 def _na(x):
@@ -66,10 +88,18 @@ def decide_s1(fair, row, ev, now=None):
         return dict(d, decision="NO_EDGE", reason=f"|fair-mid| {abs(edge):.4f} <= fee+2pp {thr:.4f}")
     if _hours_left(row, now) <= 24:
         return dict(d, decision="NO_EDGE", reason="within 24h of expiry (exit window)")
-    liq = ev["assets"][row["asset"]]["liquidation_clusters"]
-    if _na(liq["value"]):
-        return dict(d, decision="SKIP", reason=f"tape unavailable: liquidation_clusters ({liq.get('reason')})")
-    return dict(d, decision="SKIP", reason="liquidation cluster check not implemented for this source")
+    clusters, why = liq_clusters_value(ev["assets"][row["asset"]])
+    if clusters == UNAVAILABLE:
+        return dict(d, decision="SKIP", reason=f"tape unavailable: liquidation_clusters ({why})")
+    usd = liq_between(clusters, fair["spot"], row["level"])
+    big = usd >= LIQ_CLUSTER_MIN_USD
+    d["liq_between_usd"] = usd
+    # tape 同方向：買 YES（會觸價）要求價格與關卡之間有 ≥ $10B 叢集；買 NO 要求沒有
+    if side == "YES" and not big:
+        return dict(d, decision="NO_EDGE", reason=f"tape not confirming: cluster between spot and level ${usd:,.0f} < ${LIQ_CLUSTER_MIN_USD:,.0f}")
+    if side == "NO" and big:
+        return dict(d, decision="SKIP", reason=f"veto: tape cluster ${usd:,.0f} between spot and level against NO")
+    return dict(d, decision="TRADE", reason=f"edge > fee+2pp, tape confirms (cluster ${usd:,.0f})")
 
 
 def decide_s2(fair, row, ev, now=None):
@@ -89,15 +119,18 @@ def decide_s2(fair, row, ev, now=None):
     if fair.get("fomc_in_window") is True:
         return dict(d, decision="SKIP", reason="veto: FOMC meeting inside window")
     ea = ev["assets"][row["asset"]]
-    liq = ea["liquidation_clusters"]
-    if _na(liq["value"]):
-        return dict(d, decision="SKIP", reason=f"tape unavailable: liquidation_clusters ({liq.get('reason')})")
+    clusters, why = liq_clusters_value(ea)
+    if clusters == UNAVAILABLE:
+        return dict(d, decision="SKIP", reason=f"tape unavailable: liquidation_clusters ({why})")
+    near = liq_near(clusters, row["level"])
+    if near >= LIQ_CLUSTER_MIN_USD:
+        return dict(d, decision="SKIP", reason=f"veto: liquidation cluster ${near:,.0f} within {LIQ_NEAR_PCT:.0%} of strike")
     f8, src = _funding_8h(ea)
     if _na(f8):
         return dict(d, decision="SKIP", reason="tape unavailable: funding")
     if abs(f8) >= FUNDING_EXTREME_8H:
         return dict(d, decision="SKIP", reason=f"veto: extreme funding {f8:.6f}/8h ({src})")
-    return dict(d, decision="SKIP", reason="liquidation cluster check not implemented for this source")
+    return dict(d, decision="TRADE", reason="longshot, edge > fee+2pp, no veto")
 
 
 def decide_s3(fair, row, ev, now=None):
