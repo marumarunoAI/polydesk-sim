@@ -1,0 +1,31 @@
+{
+  "slug": "ethereum-above-1200-on-november-27-2026",
+  "kind": "above",
+  "asset": "ETH",
+  "direction": "up",
+  "level": 1200.0,
+  "end_utc": "2026-11-27T17:00:00Z",
+  "fair_yes": 0.999206,
+  "model": "N(d2)",
+  "spot": 1561.96,
+  "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT (1h×720, 1d×1000) + ticker/price",
+  "spot_ts": {
+    "utc": "2026-11-21T05:43:34Z",
+    "taipei": "2026-11-21T13:43:34+08:00",
+    "epoch": 1795239814.902316
+  },
+  "sigma": 0.6189076749953935,
+  "sigma_source": "binance_realized_1h_30d",
+  "T_years": 0.017725,
+  "fomc_in_window": false,
+  "base_rate": 0.993,
+  "base_rate_samples": 993,
+  "inputs_unavailable": [],
+  "blind_file": "blind/ethereum-above-1200-on-november-27-2026.json",
+  "date_taipei": "2026-11-21",
+  "ts": {
+    "utc": "2026-11-21T05:43:35Z",
+    "taipei": "2026-11-21T13:43:35+08:00",
+    "epoch": 1795239815.0312
+  }
+}

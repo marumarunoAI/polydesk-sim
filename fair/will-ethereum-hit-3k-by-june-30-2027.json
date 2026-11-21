@@ -5,27 +5,27 @@
   "direction": "up",
   "level": 3000.0,
   "end_utc": "2027-07-01T04:00:00Z",
-  "fair_yes": 0.266588,
+  "fair_yes": 0.278454,
   "model": "touch=2N(-|ln(X/S)|/(σ√T))",
-  "spot": 1758.99,
+  "spot": 1561.96,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-20T10:54:38Z",
-    "taipei": "2026-11-20T18:54:38+08:00",
-    "epoch": 1795172078.325895
+    "utc": "2026-11-21T05:43:34Z",
+    "taipei": "2026-11-21T13:43:34+08:00",
+    "epoch": 1795239814.902316
   },
-  "sigma": 0.6152000000000001,
+  "sigma": 0.7723,
   "sigma_source": "deribit_dvol (FOMC in window)",
-  "T_years": 0.61017,
+  "T_years": 0.608022,
   "fomc_in_window": true,
-  "base_rate": 0.2265,
-  "base_rate_samples": 777,
+  "base_rate": 0.153,
+  "base_rate_samples": 778,
   "inputs_unavailable": [],
   "blind_file": "blind/will-ethereum-hit-3k-by-june-30-2027.json",
-  "date_taipei": "2026-11-20",
+  "date_taipei": "2026-11-21",
   "ts": {
-    "utc": "2026-11-20T10:54:43Z",
-    "taipei": "2026-11-20T18:54:43+08:00",
-    "epoch": 1795172083.645763
+    "utc": "2026-11-21T05:43:41Z",
+    "taipei": "2026-11-21T13:43:41+08:00",
+    "epoch": 1795239821.338405
   }
 }

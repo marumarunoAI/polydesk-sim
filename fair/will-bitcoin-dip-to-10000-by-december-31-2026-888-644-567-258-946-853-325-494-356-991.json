@@ -7,25 +7,25 @@
   "end_utc": "2027-01-01T05:00:00Z",
   "fair_yes": 0.0,
   "model": "touch=2N(-|ln(X/S)|/(σ√T))",
-  "spot": 62121.94,
+  "spot": 55831.28,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-20T10:54:37Z",
-    "taipei": "2026-11-20T18:54:37+08:00",
-    "epoch": 1795172077.646897
+    "utc": "2026-11-21T05:43:34Z",
+    "taipei": "2026-11-21T13:43:34+08:00",
+    "epoch": 1795239814.188407
   },
-  "sigma": 0.48979999999999996,
+  "sigma": 0.6375,
   "sigma_source": "deribit_dvol (FOMC in window)",
-  "T_years": 0.114394,
+  "T_years": 0.112246,
   "fomc_in_window": true,
   "base_rate": 0.0,
-  "base_rate_samples": 958,
+  "base_rate_samples": 959,
   "inputs_unavailable": [],
   "blind_file": "blind/will-bitcoin-dip-to-10000-by-december-31-2026-888-644-567-258-946-853-325-494-356-991.json",
-  "date_taipei": "2026-11-20",
+  "date_taipei": "2026-11-21",
   "ts": {
-    "utc": "2026-11-20T10:54:38Z",
-    "taipei": "2026-11-20T18:54:38+08:00",
-    "epoch": 1795172078.636715
+    "utc": "2026-11-21T05:43:35Z",
+    "taipei": "2026-11-21T13:43:35+08:00",
+    "epoch": 1795239815.249057
   }
 }

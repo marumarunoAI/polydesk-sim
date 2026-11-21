@@ -5,27 +5,27 @@
   "direction": "up",
   "level": 75000.0,
   "end_utc": "2026-12-01T05:00:00Z",
-  "fair_yes": 0.012412,
+  "fair_yes": 0.000165,
   "model": "touch=2N(-|ln(X/S)|/(σ√T))",
-  "spot": 62121.94,
+  "spot": 55831.28,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-20T10:54:37Z",
-    "taipei": "2026-11-20T18:54:37+08:00",
-    "epoch": 1795172077.646897
+    "utc": "2026-11-21T05:43:34Z",
+    "taipei": "2026-11-21T13:43:34+08:00",
+    "epoch": 1795239814.188407
   },
-  "sigma": 0.4389800293440381,
+  "sigma": 0.473982315810868,
   "sigma_source": "binance_realized_1h_30d",
-  "T_years": 0.029462,
+  "T_years": 0.027314,
   "fomc_in_window": false,
-  "base_rate": 0.0233,
-  "base_rate_samples": 989,
+  "base_rate": 0.003,
+  "base_rate_samples": 990,
   "inputs_unavailable": [],
   "blind_file": "blind/will-bitcoin-reach-75k-in-november-2026-from-november-10.json",
-  "date_taipei": "2026-11-20",
+  "date_taipei": "2026-11-21",
   "ts": {
-    "utc": "2026-11-20T10:54:41Z",
-    "taipei": "2026-11-20T18:54:41+08:00",
-    "epoch": 1795172081.863233
+    "utc": "2026-11-21T05:43:39Z",
+    "taipei": "2026-11-21T13:43:39+08:00",
+    "epoch": 1795239819.072097
   }
 }
