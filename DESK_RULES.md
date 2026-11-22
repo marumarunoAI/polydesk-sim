@@ -2,7 +2,7 @@
 
 來源：Argona《How to Build Your Own Polymarket Trading Desk With Fable 5.2》
 https://x.com/Argona0x/status/2121600686374699125 （原文存於 argona_article.txt）
-版本：v1.0（2026-11-20 台北，PM模擬-負責人建立）
+版本：v1.2（2026-11-22 台北更新；v1.0 建立於 2026-11-20）
 階段：**只模擬**。不下真單、無錢包、無私鑰、無 Polymarket 帳號。只讀公開資料。
 虛擬資金：**1,000 USD**。時間一律記台北時間（同時保留 UTC 原始值）。
 
@@ -69,7 +69,8 @@ https://x.com/Argona0x/status/2121600686374699125 （原文存於 argona_article
 - Polymarket：Gamma API（市場清單、規則）、CLOB API（訂單簿、中價）。
 - Binance：K 線、資金費率、OI（公開 API）。
 - ETF 流量：Farside。隱含波動率：Deribit 公開 API。
-- 清算地圖、盤前價格、交易所流向：免費來源沒有 → 記「unavailable」→ 依規則 6 SKIP 交易，但**公平值與市場價仍照記 journal**，讓 Brier 可以比較。
+- 清算叢集：CoinGlass 免費全市場加總熱力圖（Coin mode，例如 https://www.coinglass.com/LiquidationHeatMap/BTC?mode=coin ，Model 1，時間範圍固定 1 個月）。交易員每日把 BTC、ETH 的清算價位與金額寫入 `evidence/liquidation_clusters.input.json`，程式只讀此檔，不爬網、不呼叫付費 API。缺檔、不是當天台北日期、或格式不符 → unavailable → 依規則 6 SKIP。門檻維持文章的 $10B，不因免費圖上較少見而調降（2026-11-22 使用者決定）。
+- 盤前價格、交易所流向：免費來源沒有 → 記「unavailable」→ 依規則 6 SKIP 交易，但**公平值與市場價仍照記 journal**，讓 Brier 可以比較。
 
 ## 每週檢查（每週日）
 用 journal 計算各策略 `brier_desk` 對 `brier_market` 與虛擬損益；打輸市場的策略觸發其停用規則，並記錄在 journal。
@@ -100,11 +101,11 @@ https://x.com/Argona0x/status/2121600686374699125 （原文存於 argona_article
 | 出場觸發 | 邊際 < 0.5pp（持有側 fair − mid）；S1/S2 距到期 ≤ 24h；S2 否決條件出現（窗口內 FOMC、資金費率極端、關卡 ±3% 內有 ≥ $10B 叢集）；S3 持有到中午結算、不適用 24h | `exits.py` |
 | 出場做法 | 掛 maker 賣單：自家側最佳賣價 −1 tick（價差僅 1 tick 則排隊在最佳賣價）；成交只認真實成交紀錄判定，不假設以 mid 成交、不吃單；出場單掛到到期，沒成交的部分持有到結算 | `sim.place_exit()` |
 | 輸入 unavailable 時的出場 | 邊際無法評估就不出場（只套用時間規則），不當成出場理由 | `exits.exit_reason()` |
-| S1 清算叢集（tape） | 價格與關卡之間（含關卡）清算總額 ≥ $10B 才算確認；買 YES 需確認，買 NO 需無叢集；資料源缺 → SKIP，**不用任何代理指標** | `strategies.liq_between()` |
+| S1 清算叢集（tape） | 價格與關卡之間（含關卡）清算總額 ≥ $10B 才算確認；買 YES 需確認，買 NO 需無叢集；資料源缺 → SKIP，**不用任何代理指標**。來源見下一列 | `strategies.liq_between()` |
 | S2 清算否決 | 關卡 ±3% 內有 ≥ $10B 叢集 → 否決 | `strategies.LIQ_NEAR_PCT` |
-| 清算叢集資料格式 | `evidence.assets.<A>.liquidation_clusters.value = [{"price":…, "usd":…}]`；目前免費來源沒有 → unavailable | `strategies.liq_clusters_value()` |
+| 清算叢集資料格式 | 交易員每日寫入 `evidence/liquidation_clusters.input.json`（`asof_taipei` 必須是當天台北日期；`range` 固定為 `1 month`；各資產含 `spot` 與 `levels: [{"price":…, "usd":…}]`，`usd` 單位為美元，網頁寫 84M 就填 84000000）。程式讀入 `evidence.assets.<A>.liquidation_clusters.value`。來源：CoinGlass Coin mode、Model 1、1 個月。不爬網、不付費。缺檔、過期或格式不符 → unavailable（2026-11-22 使用者決定用免費加總圖，門檻不改） | `strategies.liq_clusters_value()` |
 | 費率表（依下單/事件時間切換） | 2026-11-20 23:59 UTC 前 Crypto taker 0.07；起 0.01（其他不變：maker 0，公式 fee = shares×rate×p×(1−p)）。進場門檻 fee 用決策當下的費率 | `fees.py` |
 | 成交判定 | 只認真實 taker 成交穿過/等於限價（同價先扣排隊量）；訂單簿穿價不算成交。建立時限價會穿過或碰到對手最佳價的單一律 post-only 拒單（不成交、不改 taker、手續費 0、不自動改價，原因記在 journal）。成交紀錄有延遲（實測中位數約 457 秒、最大約 954 秒），掛單一律從下單時間重掃、結算前再重掃一次；成交紀錄 API 失敗則該張單本輪不更新、不撤單、不結算（e4b8bf5，2026-11-20 修正，更保守） | `sim.apply_fills()` |
 | 資金費率來源順序 | Binance → OKX → Deribit → Hyperliquid（取第一個可用） | `strategies.FUNDING_ORDER` |
-| BTC ETF 流量 | Farside（farside.co.uk/btc、/eth，一般瀏覽器 UA，由共用電腦抓取；US$m），前一美東交易日各基金全部更新才輸出，否則 unavailable → SKIP；不回退其他來源（c109942，2026-11-20 使用者決定） | `evidence.btc_etf_prev_day()` |
+| BTC ETF 流量 | Farside（farside.co.uk/btc、/eth，一般瀏覽器 UA，由共用電腦抓取；US$m），前一美東交易日各基金全部更新才輸出，否則 unavailable → SKIP；不回退其他來源（c109942，2026-11-20 使用者決定） | `evidence.etf_flow()` / `farside_etf_prev_day()` |
 | 總經日程 | Nasdaq 經濟日曆（美國 CPI/PPI/NFP/PCE/GDP/FOMC/零售/ISM/失業金），未來 8 天 | `evidence.macro_events()` |
