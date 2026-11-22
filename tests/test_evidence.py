@@ -337,3 +337,220 @@ class FarsideEtfTest(unittest.TestCase):
         self.assertIn("403", btc["reason"])
         self.assertIn("farside.co.uk/btc", btc["source"])
         self.assertIn("farside.co.uk/eth", eth["source"])
+
+
+
+def _liq_payload(asof, **over):
+    d = {
+        "asof_taipei": asof,
+        "source": "https://www.coinglass.com/LiquidationHeatMap/BTC?mode=coin (test)",
+        "model": 1,
+        "range": "1 month",
+        "assets": {
+            "BTC": {"spot": 100000, "levels": [{"price": 95000, "usd": 12e9}, {"price": 105000, "usd": 8e9}]},
+            "ETH": {"spot": 3000, "levels": [{"price": 2800, "usd": 5e9}, {"price": 3200, "usd": 11e9}]},
+        },
+    }
+    d.update(over)
+    return d
+
+
+def _write_liq(payload):
+    common.write_json(evidence.liquidation_clusters_path(), payload)
+
+
+class LiquidationInputTest(unittest.TestCase):
+    def setUp(self):
+        self.td = TempDirs().__enter__()
+        self.today = common.today_tpe()
+
+    def tearDown(self):
+        self.td.__exit__()
+
+    def test_valid_file_fills_both_assets(self):
+        _write_liq(_liq_payload(self.today))
+        out = evidence.load_liquidation_clusters()
+        self.assertEqual(out["BTC"]["value"], [{"price": 95000.0, "usd": 12e9}, {"price": 105000.0, "usd": 8e9}])
+        self.assertEqual(out["ETH"]["value"][1]["usd"], 11e9)
+        self.assertEqual(out["BTC"]["spot"], 100000.0)
+        self.assertEqual(out["BTC"]["model"], 1)
+        self.assertEqual(out["BTC"]["range"], "1 month")
+        self.assertEqual(out["BTC"]["asof_taipei"], self.today)
+        self.assertIn("coinglass.com", out["BTC"]["source"])
+
+    def test_file_reaches_10b_threshold_s1_trades(self):
+        import strategies as st
+        _write_liq(_liq_payload(self.today))
+        ev = {"assets": {"BTC": {"liquidation_clusters": evidence.load_liquidation_clusters()["BTC"]}}, "global": {}}
+        row = {"asset": "BTC", "kind": "reach", "level": 98000,
+               "end_utc": "2099-01-01T00:00:00Z",
+               "yes_book": {"mid": 0.40, "best_bid": 0.39, "best_ask": 0.41}}
+        fair = {"fair_yes": 0.60, "inputs_unavailable": [], "fomc_in_window": False, "spot": 90000.0}
+        d = st.decide_s1(fair, row, ev)
+        self.assertEqual(d["decision"], "TRADE")
+        self.assertGreaterEqual(d["liq_between_usd"], st.LIQ_CLUSTER_MIN_USD)
+        self.assertNotIn("unavailable", d["reason"])
+
+    def test_file_below_10b_is_no_edge_not_unavailable(self):
+        import strategies as st
+        payload = _liq_payload(self.today)
+        payload["assets"]["BTC"]["levels"] = [{"price": 95000, "usd": 3e9}, {"price": 96000, "usd": 6e9}]
+        _write_liq(payload)
+        ev = {"assets": {"BTC": {"liquidation_clusters": evidence.load_liquidation_clusters()["BTC"]}}}
+        row = {"asset": "BTC", "kind": "reach", "level": 98000,
+               "end_utc": "2099-01-01T00:00:00Z",
+               "yes_book": {"mid": 0.40, "best_bid": 0.39, "best_ask": 0.41}}
+        fair = {"fair_yes": 0.60, "inputs_unavailable": [], "spot": 90000.0}
+        d = st.decide_s1(fair, row, ev)
+        # 9e9 < 10e9：有資料但未確認，是 NO_EDGE，不是規則 6 SKIP
+        self.assertEqual(d["decision"], "NO_EDGE")
+        self.assertIn("tape not confirming", d["reason"])
+        self.assertIn("9,000,000,000", d["reason"])
+
+    def test_threshold_is_10b_inclusive(self):
+        import strategies as st
+        self.assertEqual(st.LIQ_CLUSTER_MIN_USD, 10e9)
+        clusters = [{"price": 95000, "usd": 10e9}]
+        self.assertEqual(st.liq_between(clusters, 90000, 98000), 10e9)
+        self.assertTrue(st.liq_between(clusters, 90000, 98000) >= st.LIQ_CLUSTER_MIN_USD)
+        self.assertFalse(st.liq_between([{"price": 95000, "usd": 10e9 - 1}], 90000, 98000) >= st.LIQ_CLUSTER_MIN_USD)
+        # 價位剛好等於 spot 或關卡也算進去（含關卡）
+        self.assertEqual(st.liq_between([{"price": 90000, "usd": 1}, {"price": 98000, "usd": 2}], 90000, 98000), 3)
+        self.assertEqual(st.liq_between([{"price": 89999, "usd": 99e9}], 90000, 98000), 0)
+        # S2：關卡 ±3% 內滿 10B 才否決
+        # S2「關卡附近」是 ±3%（70000 → 約 67900–72100）；用明確在內／在外的價
+        self.assertGreaterEqual(st.liq_near([{"price": 72000, "usd": 10e9}], 70000), st.LIQ_CLUSTER_MIN_USD)
+        self.assertLess(st.liq_near([{"price": 73000, "usd": 10e9}], 70000), st.LIQ_CLUSTER_MIN_USD)
+
+    def test_missing_file(self):
+        out = evidence.load_liquidation_clusters()
+        for a in ("BTC", "ETH"):
+            self.assertEqual(out[a]["value"], "unavailable")
+            self.assertIn("缺檔", out[a]["reason"])
+            self.assertIn(evidence.LIQ_CLUSTERS_INPUT, out[a]["reason"])
+        import strategies as st
+        ev = {"assets": {"BTC": {"liquidation_clusters": out["BTC"]}}}
+        row = {"asset": "BTC", "kind": "reach", "level": 98000,
+               "end_utc": "2099-01-01T00:00:00Z",
+               "yes_book": {"mid": 0.40, "best_bid": 0.39, "best_ask": 0.41}}
+        d = st.decide_s1({"fair_yes": 0.60, "inputs_unavailable": [], "spot": 90000.0}, row, ev)
+        self.assertEqual(d["decision"], "SKIP")
+        self.assertIn("缺檔", d["reason"])
+        self.assertIn("liquidation_clusters", d["reason"])
+
+    def test_stale_asof(self):
+        _write_liq(_liq_payload("2020-01-01"))
+        out = evidence.load_liquidation_clusters()
+        for a in ("BTC", "ETH"):
+            self.assertEqual(out[a]["value"], "unavailable")
+            self.assertIn("過期", out[a]["reason"])
+            self.assertIn("2020-01-01", out[a]["reason"])
+            self.assertIn(self.today, out[a]["reason"])
+
+    def test_bad_json(self):
+        path = evidence.liquidation_clusters_path()
+        Path = __import__("pathlib").Path
+        Path(path).write_text("{not json", encoding="utf-8")
+        out = evidence.load_liquidation_clusters()
+        for a in ("BTC", "ETH"):
+            self.assertEqual(out[a]["value"], "unavailable")
+            self.assertIn("格式不符", out[a]["reason"])
+            self.assertIn("JSON", out[a]["reason"])
+
+    def test_format_errors_name_the_field(self):
+        # 非整檔：ETH spot 非法，BTC 仍可用
+        payload = _liq_payload(self.today)
+        payload["assets"]["ETH"]["spot"] = -1
+        _write_liq(payload)
+        out = evidence.load_liquidation_clusters()
+        self.assertNotEqual(out["BTC"]["value"], "unavailable")
+        self.assertEqual(out["ETH"]["value"], "unavailable")
+        self.assertIn("格式不符", out["ETH"]["reason"])
+        self.assertIn("assets.ETH.spot", out["ETH"]["reason"])
+
+        payload = _liq_payload(self.today)
+        payload["assets"]["BTC"]["levels"] = []
+        _write_liq(payload)
+        out = evidence.load_liquidation_clusters()
+        self.assertEqual(out["BTC"]["value"], "unavailable")
+        self.assertIn("assets.BTC.levels", out["BTC"]["reason"])
+        self.assertNotEqual(out["ETH"]["value"], "unavailable")
+
+        payload = _liq_payload(self.today)
+        payload["assets"]["BTC"]["levels"] = [{"price": "84M", "usd": 1}]
+        _write_liq(payload)
+        out = evidence.load_liquidation_clusters()
+        self.assertEqual(out["BTC"]["value"], "unavailable")
+        self.assertIn("assets.BTC.levels[0].price", out["BTC"]["reason"])
+
+        payload = _liq_payload(self.today)
+        payload["assets"]["BTC"]["levels"] = [{"price": 1.0, "usd": float("inf")}]
+        _write_liq(payload)
+        out = evidence.load_liquidation_clusters()
+        self.assertIn("有限", out["BTC"]["reason"])
+
+    def test_range_wrong_both_unavailable(self):
+        _write_liq(_liq_payload(self.today, range="3 month"))
+        out = evidence.load_liquidation_clusters()
+        for a in ("BTC", "ETH"):
+            self.assertEqual(out[a]["value"], "unavailable")
+            self.assertIn("range 不符", out[a]["reason"])
+            self.assertIn("3 month", out[a]["reason"])
+
+    def test_model_wrong_both_unavailable(self):
+        _write_liq(_liq_payload(self.today, model=2))
+        out = evidence.load_liquidation_clusters()
+        for a in ("BTC", "ETH"):
+            self.assertEqual(out[a]["value"], "unavailable")
+            self.assertIn("model 不符", out[a]["reason"])
+
+    def test_only_btc_eth_unavailable_btc_ok(self):
+        payload = _liq_payload(self.today)
+        del payload["assets"]["ETH"]
+        _write_liq(payload)
+        out = evidence.load_liquidation_clusters()
+        self.assertEqual(out["BTC"]["value"][0]["usd"], 12e9)
+        self.assertEqual(out["ETH"]["value"], "unavailable")
+        self.assertIn("缺 assets.ETH", out["ETH"]["reason"])
+        import strategies as st
+        ev = {"assets": {"BTC": {"liquidation_clusters": out["BTC"]}, "ETH": {"liquidation_clusters": out["ETH"]}}}
+        row_btc = {"asset": "BTC", "kind": "reach", "level": 98000,
+                   "end_utc": "2099-01-01T00:00:00Z",
+                   "yes_book": {"mid": 0.40, "best_bid": 0.39, "best_ask": 0.41}}
+        d = st.decide_s1({"fair_yes": 0.60, "inputs_unavailable": [], "spot": 90000.0}, row_btc, ev)
+        self.assertEqual(d["decision"], "TRADE")
+        row_eth = dict(row_btc, asset="ETH", level=3100)
+        d2 = st.decide_s1({"fair_yes": 0.60, "inputs_unavailable": [], "spot": 2900.0}, row_eth, ev)
+        self.assertEqual(d2["decision"], "SKIP")
+        self.assertIn("缺 assets.ETH", d2["reason"])
+
+    def test_collect_reads_input_and_ignores_hl_reference(self):
+        from unittest import mock
+        _write_liq(_liq_payload(self.today))
+        def boom(*a, **k):
+            raise RuntimeError("no net")
+        with mock.patch.object(evidence, "bitget", boom), mock.patch.object(evidence, "gate", boom), \
+                mock.patch.object(evidence, "dydx", boom), \
+                mock.patch.object(evidence, "binance_funding", boom), mock.patch.object(evidence, "binance_oi", boom), \
+                mock.patch.object(evidence, "okx", boom), mock.patch.object(evidence, "deribit_perp", boom), \
+                mock.patch.object(evidence, "hyperliquid", boom), mock.patch.object(evidence, "deribit_dvol", boom), \
+                mock.patch.object(evidence, "etf_flow", boom), mock.patch.object(evidence, "macro_events", boom), \
+                mock.patch.object(evidence, "okx_premarket", boom), \
+                mock.patch.object(evidence, "fomc_decision_days", lambda: []):
+            ev = evidence.collect()
+        self.assertEqual(ev["assets"]["BTC"]["liquidation_clusters"]["value"][0]["usd"], 12e9)
+        self.assertEqual(ev["assets"]["ETH"]["liquidation_clusters"]["spot"], 3000.0)
+        self.assertNotIn("reference", ev)
+
+    def test_example_file_asof_placeholder_is_stale(self):
+        import json, os
+        ex = os.path.join(os.path.dirname(os.path.dirname(__file__)),
+                          "examples", "liquidation_clusters.input.example.json")
+        with open(ex, encoding="utf-8") as f:
+            data = json.load(f)
+        self.assertTrue(data.get("example"))
+        self.assertIn("虛構", data["note"])
+        out = evidence.load_liquidation_clusters(path=ex)
+        for a in ("BTC", "ETH"):
+            self.assertEqual(out[a]["value"], "unavailable")
+            self.assertIn("過期", out[a]["reason"])

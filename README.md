@@ -66,12 +66,15 @@ python -m unittest discover -s tests
 | FOMC 日程 | federalreserve.gov | OK |
 | ETF 流量 | Farside `https://farside.co.uk/btc/`、`/eth/`（box，瀏覽器 UA） | 前一美東交易日 US$m；403／challenge／該日未齊 → unavailable（不回退） |
 | 總經發布日程 | BLS | 403 → unavailable |
-| 清算地圖、交易所流向、盤前價 | 無免費來源 | unavailable |
+| 清算叢集 | 交易員每日自 CoinGlass Coin mode（Model 1、1 month）填入 `evidence/liquidation_clusters.input.json` | 只讀此檔；缺檔／過期／格式不符 → unavailable |
+| 交易所流向、盤前價 | 無免費來源 | unavailable |
 
 依 DESK_RULES 第 6 條，用到 unavailable 的交易一律 SKIP，但 fair 與 mid 照記 journal。
 
 ## 輸出
-`blind/ fair/ board/ evidence/ tickets/ journal/` 的執行輸出不進 git（見 `.gitignore`）；範例在 `examples/`（`board_sample.json`、`journal_sample.csv`）。
+`blind/ fair/ board/ evidence/ tickets/ journal/` 的執行輸出不進 git（見 `.gitignore`，含每日清算輸入 `evidence/liquidation_clusters.input.json`）；範例在 `examples/`（`board_sample.json`、`journal_sample.csv`、`liquidation_clusters.input.example.json`）。
+
+清算叢集：把範例複製到 `evidence/liquidation_clusters.input.json`（或 `--outdir` 時的 `<outdir>/evidence/`），填當天台北日期的 `asof_taipei`、`source`、`model`（必須是 1）、`range`（必須是 `1 month`），以及 BTC／ETH 的 `spot` 與 `levels`（`[{price, usd}, …]`，`usd` 為美元）。程式只讀此檔，不爬 CoinGlass、不用任何代理指標。缺檔、asof 不是當天、range／model 不符或格式錯 → 該資產 unavailable（整檔或 asof／range／model 錯則兩邊都缺）。
 
 ## 程式員的操作定義（負責人可改）
 - S2「遠檔位」：fair_touch ≤ 10%（`strategies.FAR_STRIKE_MAX_FAIR`）。
@@ -83,7 +86,7 @@ python -m unittest discover -s tests
 ## 資料源補強（v1.2）
 - 資金費率／OI 取用順序加入 Bitget、Gate、dYdX（見 `docs/data_sources.md`；一律換成每 8h，取第一個可用）。
 - `evidence.global.okx_premarket`：OKX pre_market 永續價格，S4（v2）用，**目前沒有任何策略讀取**。
-- `hl_liq_reference.py` / `run_day.py --hl-liq-ref N`：Hyperliquid 清算價分佈，**僅參考**，不進 `liquidation_clusters`、不是 S1/S2 訊號。
+- `hl_liq_reference.py` / `run_day.py --hl-liq-ref N`：Hyperliquid 清算價分佈，**僅參考**，不進 `liquidation_clusters`、不是 S1/S2 訊號。清算叢集只來自交易員手動輸入檔。
 
 ## 正式紀錄進版本控制（v1.3）
 - `journal/`、`fair/`、`tickets/`（`tickets/test/` 除外）是正式紀錄，納入 git；`board/`、`evidence/`、`blind/` 快照與驗證暫存仍被忽略。

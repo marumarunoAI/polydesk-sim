@@ -39,7 +39,7 @@
 | **總經日程（CPI/NFP/PCE/GDP/FOMC…）：Nasdaq 經濟日曆** | https://api.nasdaq.com/api/calendar/economicevents?date=YYYY-MM-DD | **200**，免 key，每日一請求；欄位標 `gmt` 但時間吻合美東發布時刻（例如 08:30 的 Jobless Claims、PCE） | **是（v1.1 新增）** |
 | 總經日程：Forex Factory 週檔 | https://nfs.faireconomy.media/ff_calendar_thisweek.json | 200，只有本週；nextweek 404 | 否（備用） |
 | 總經日程：TradingEconomics／Investing | tradingeconomics.com、investing.com | 200（HTML，需爬）／403 | 否 |
-| **清算熱力圖／清算叢集** | 無免費來源 | — | **unavailable，不用任何代理指標頂替** |
+| **清算熱力圖／清算叢集** | 交易員每日自 CoinGlass 免費 Coin mode 熱力圖（例如 https://www.coinglass.com/LiquidationHeatMap/BTC?mode=coin ，Model 1、時間範圍 1 month）手抄進 `evidence/liquidation_clusters.input.json`（`--outdir` 時為 `<outdir>/evidence/`） | 程式只讀此檔，不爬網、不呼叫付費 API | **是（手動輸入）**；缺檔、asof 不是當天台北日期、range／model 不符或格式錯 → unavailable，不用任何代理指標 |
 | 交易所流向、盤前價 | 無免費來源 | — | unavailable |
 
 ## OKX pre_market（S4 v2 證據，僅記錄）
@@ -51,7 +51,7 @@
 - 限流：固定最小間隔 0.4 秒、不並行；429／5xx／網路錯誤指數退避（2、4、8…秒，上限 60，尊重 `Retry-After`），每次 429 把間隔 ×1.5（上限 3 秒），成功時慢慢降回；重試 6 次仍失敗才放棄該帳戶（帳戶失敗不影響整體，全部失敗才標 unavailable）。
 - 實測結果（前 300 大帳戶抽樣）：BTC 46 個持倉、名目 $585M（約為 Hyperliquid BTC OI 的 24%），其中 13 個（$41M）是 cross margin 而 `liquidationPx` 為 null；清算價落在現價 ±10% 內的名目只有約 $7M。ETH 34 個持倉、名目 $247M。**遠低於 S1/S2 規則的 $10B 門檻，也只是抽樣**，所以即使有人想用也不夠格。
 - 寫入：`python hl_liq_reference.py [--top N]` → `evidence/hl_liq_reference.json`；或 `python run_day.py --hl-liq-ref N` → `evidence/latest.json` 的 `reference.hl_liquidation_distribution`（預設不抓）。每筆附 `source`、`fetched_at`、`reference_only: true`、涵蓋率 `coverage_of_oi`。
-- **硬規定**：不寫進 `liquidation_clusters`（仍永遠 unavailable → S1/S2 在缺資料時照樣 SKIP）、不經 `strategies` 的清算介面、不是任何訊號；有測試掃描 strategies／risk_gate／quant／sim／exits／gate 的原始碼，出現這份資料的鍵名就失敗。
+- **硬規定**：不寫進 `liquidation_clusters`（清算叢集只來自交易員的 `liquidation_clusters.input.json`，缺檔時仍 unavailable → S1/S2 依規則 6 SKIP）、不經 `strategies` 的清算介面、不是任何訊號；有測試掃描 strategies／risk_gate／quant／sim／exits／gate 的原始碼，出現這份資料的鍵名就失敗。
 
 ## 使用細節
 - **資金費率**取用順序（`strategies.FUNDING_ORDER`）：Binance → OKX → Bitget → Gate → Deribit → Hyperliquid → dYdX，取第一個可用的；**OI** 順序（`OI_ORDER`）：Binance → OKX → Bitget → Gate → Hyperliquid → Deribit → dYdX。所有來源的值都留在 evidence 供對照，每筆帶 `source` URL 與 `fetched_at`。
@@ -60,4 +60,5 @@
 - **ETF 流量（Farside，正式來源）**：從本環境（box）用 `requests` 帶一般瀏覽器 UA 讀 https://farside.co.uk/btc/ 與 https://farside.co.uk/eth/（不走 VPS、不裝瀏覽器、不用代理或替代來源）。`run_day` 每次 collect 各抓一次，不另建定時任務。解析公開表格的日期、各基金、Total，單位 US$m；括號為負值，`-` 為無值。只輸出**前一個美東交易日**（週一到週五；美國假日若表上無該日則 unavailable）且**該列各基金與 Total 皆已是數字**的 Total。遇到 HTTP 非 200、Cloudflare challenge、解析失敗、該列為 `-` 或基金未全數更新，就寫 unavailable 與原因（規則 6 → SKIP），**不回退**其他來源。每筆帶 `source` URL、`trading_day`／`data_date`、`fetched_at`（UTC 與台北）。S3 tape 只看正負方向。
 - **btcetfdata.com（不再作為 tape 來源）**：先前僅 BTC、單位 BTC、嚴格要求 9 檔 `dt` 對齊前一美東交易日。函式仍在，但 `etf_flow()`／`etf_flow_prev_day` 不再呼叫它，以免與 Farside 數字（單位不同）衝突時悄悄選一個。
 - **總經事件**：Nasdaq 端點屬非正式文件的公開端點，可能改版；回傳 `No record found`（code 1002）視為當天無事件，其他異常視為 unavailable。關鍵字：CPI、PPI、Nonfarm/payroll、unemployment rate、PCE、GDP、FOMC、retail sales、ISM、jobless claims（排除 speaks、GDPNow、Dallas Fed）。
+- **清算叢集（手動輸入）**：交易員每日填 `evidence/liquidation_clusters.input.json`（格式見 `examples/liquidation_clusters.input.example.json`；範例數字是虛構的）。欄位：`asof_taipei`（必須等於當天台北日期）、`source`、`model`（必須是 1）、`range`（必須是 `1 month`）、`assets.BTC`／`assets.ETH` 各含正數有限的 `spot` 與非空 `levels: [{"price":…, "usd":…}]`（`usd` 為美元，網頁 84M 填 84000000）。讀入 `evidence.assets.<A>.liquidation_clusters.value`。單一資產缺漏或格式錯只影響該資產；整檔 JSON 壞掉、asof／range／model 不符則兩邊都 unavailable。不用 Hyperliquid 清算參考或其他代理指標。
 - **S3 對 tape 的需求**：funding、OI、ETF 前一日流量、總經日程，四項都要有；BTC 與 ETH 的 ETF 都來自 Farside，缺資料時該資產的 S3 依規則 6 SKIP。

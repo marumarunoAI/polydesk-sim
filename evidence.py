@@ -1,11 +1,13 @@
 """evidence.py — 盤面證據（tape），只用免費公開來源。每個數字附來源 URL 與抓取時間。
 抓不到就寫 unavailable 與原因（依 DESK_RULES 第 6 條，用到它的交易會 SKIP）。
 evidence/ 只准經 gate.read_evidence() 讀。"""
+import json
+import math
 import os
 import re
 
 from common import (DIRS, UNAVAILABLE, _S, get_json, http_json, stamp,
-                    write_json)
+                    today_tpe, write_json)
 from quant import fomc_decision_days, FOMC_URL, DERIBIT
 
 ASSETS = ("BTC", "ETH")
@@ -405,12 +407,118 @@ def farside(asset, **kw):
     return farside_etf_prev_day(asset, **kw)
 
 
+
+LIQ_CLUSTERS_INPUT = "liquidation_clusters.input.json"
+LIQ_RANGE = "1 month"
+LIQ_MODEL = 1
+
+
+def liquidation_clusters_path():
+    """交易員每日輸入檔：預設 repo 的 evidence/，--outdir 時為 outdir/evidence/。"""
+    return os.path.join(DIRS["evidence"], LIQ_CLUSTERS_INPUT)
+
+
+def _num(x, name, positive=True):
+    if isinstance(x, bool) or not isinstance(x, (int, float)):
+        raise ValueError(f"{name} 必須是數字")
+    if not math.isfinite(x):
+        raise ValueError(f"{name} 必須是有限數字")
+    if positive and x <= 0:
+        raise ValueError(f"{name} 必須為正數")
+    if not positive and x < 0:
+        raise ValueError(f"{name} 不得為負數")
+    return float(x)
+
+
+def _parse_asset_levels(asset, blob):
+    if not isinstance(blob, dict):
+        raise ValueError(f"assets.{asset} 必須是物件")
+    if "spot" not in blob:
+        raise ValueError(f"缺 assets.{asset}.spot")
+    if "levels" not in blob:
+        raise ValueError(f"缺 assets.{asset}.levels")
+    spot = _num(blob["spot"], f"assets.{asset}.spot", positive=True)
+    levels = blob["levels"]
+    if not isinstance(levels, list) or not levels:
+        raise ValueError(f"assets.{asset}.levels 必須是非空列表")
+    out = []
+    for i, row in enumerate(levels):
+        if not isinstance(row, dict) or "price" not in row or "usd" not in row:
+            raise ValueError(f"assets.{asset}.levels[{i}] 需含 price 與 usd")
+        price = _num(row["price"], f"assets.{asset}.levels[{i}].price", positive=True)
+        usd = _num(row["usd"], f"assets.{asset}.levels[{i}].usd", positive=False)
+        out.append({"price": price, "usd": usd})
+    return spot, out
+
+
+def load_liquidation_clusters(path=None, now=None):
+    """讀交易員手動輸入的清算叢集。只讀檔，不爬網、不呼叫付費 API、不用代理指標。
+    回傳 {asset: item(...) 或 na(...)}。整檔錯誤／asof／range／model 不符 → 兩資產都 unavailable；
+    單一資產缺漏或格式錯只影響該資產。"""
+    path = path or liquidation_clusters_path()
+    today = today_tpe(now)
+    file_src = LIQ_CLUSTERS_INPUT
+
+    def both(reason, source=file_src):
+        return {a: na(source, reason) for a in ASSETS}
+
+    if not os.path.isfile(path):
+        return both(f"缺檔：找不到 {LIQ_CLUSTERS_INPUT}（交易員須每日自 CoinGlass Coin mode、Model 1、1 month 熱力圖填入）")
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        return both(f"格式不符：無法解析 JSON（{e}）")
+    if not isinstance(data, dict):
+        return both("格式不符：根節點必須是物件")
+
+    asof = data.get("asof_taipei")
+    if not isinstance(asof, str) or not asof.strip():
+        return both("格式不符：缺 asof_taipei（或不是非空字串）")
+    if asof != today:
+        return both(f"過期：asof_taipei={asof} 不是當天台北日期 {today}")
+
+    if "range" not in data:
+        return both("格式不符：缺 range")
+    if data.get("range") != LIQ_RANGE:
+        return both(f"range 不符：{data.get('range')!r}（必須是 {LIQ_RANGE!r}）")
+
+    if "model" not in data:
+        return both("格式不符：缺 model")
+    model = data.get("model")
+    if isinstance(model, bool) or not isinstance(model, (int, float)) or not math.isfinite(model) or model != LIQ_MODEL:
+        return both(f"model 不符：{model!r}（必須是 {LIQ_MODEL}）")
+
+    source = data.get("source")
+    if not isinstance(source, str) or not source.strip():
+        return both("格式不符：缺 source（或不是非空字串）")
+    source = source.strip()
+
+    assets = data.get("assets")
+    if not isinstance(assets, dict):
+        return both("格式不符：缺 assets 或不是物件", source=source)
+
+    out = {}
+    for a in ASSETS:
+        if a not in assets:
+            out[a] = na(source, f"格式不符：缺 assets.{a}")
+            continue
+        try:
+            spot, levels = _parse_asset_levels(a, assets[a])
+            out[a] = item(levels, source, unit="USD", asof_taipei=asof,
+                          model=LIQ_MODEL, range=LIQ_RANGE, spot=spot)
+        except ValueError as e:
+            out[a] = na(source, f"格式不符：{e}")
+    return out
+
+
 def collect():
     ev = {"fetched_at": stamp(), "assets": {}, "global": {}}
     try:
         hl = hyperliquid(ASSETS)
     except Exception as e:
         hl = {a: {"funding": na(HL, str(e)[:200]), "oi": na(HL, str(e)[:200])} for a in ASSETS}
+    liq = load_liquidation_clusters()
     for a in ASSETS:
         okx_f, okx_o = (None, None)
         try:
@@ -438,7 +546,7 @@ def collect():
             **extra,
             "deribit_dvol": _try(lambda: deribit_dvol(a), DERIBIT),
             "etf_flow_prev_day": _try(lambda: etf_flow(a), FARSIDE[a]),
-            "liquidation_clusters": na("none", "沒有免費的清算熱力圖來源（文章用 Minara 付費工具）"),
+            "liquidation_clusters": liq[a],
             "exchange_flows": na("none", "沒有免費的交易所流向來源"),
         }
     ev["global"]["fomc_decision_days"] = _try(

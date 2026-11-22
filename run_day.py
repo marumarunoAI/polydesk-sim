@@ -157,7 +157,12 @@ def main(argv=None):
             src = a.outdir and os.path.join(a.outdir, k) or DIRS[k]
             if os.path.isdir(src):
                 shutil.copytree(src, os.path.join(tmp, k))
+        # 手動清算輸入也要帶進暫存 evidence/（不複製整個 evidence 快照）
+        src_ev = a.outdir and os.path.join(a.outdir, "evidence") or DIRS["evidence"]
+        src_liq = os.path.join(src_ev, evidence.LIQ_CLUSTERS_INPUT)
         set_outdir(tmp)
+        if os.path.isfile(src_liq):
+            shutil.copy2(src_liq, os.path.join(DIRS["evidence"], evidence.LIQ_CLUSTERS_INPUT))
         print(f"[dry-run] 輸出改寫到暫存資料夾 {tmp}（結束後刪除，不影響真實資料）")
     elif a.outdir:
         set_outdir(os.path.abspath(a.outdir))

@@ -1,0 +1,24 @@
+{
+  "example": true,
+  "note": "此檔是格式範例，數字全是虛構的，不能當成真實清算資料。交易員每日從 CoinGlass 免費全市場加總熱力圖（Coin mode，例如 https://www.coinglass.com/LiquidationHeatMap/BTC?mode=coin ，ETH 把路徑改成 /ETH；Model 選 1，時間範圍固定 1 month）抄下現價與各檔價位金額，另存為 evidence/liquidation_clusters.input.json（使用 run_day --outdir 時放在 <outdir>/evidence/ 下）。把 asof_taipei 改成當天台北日期（YYYY-MM-DD）。usd 單位是美元：網頁寫 84M 就填 84000000，不要寫 84 或 84M。此檔在 evidence/ 下被 .gitignore 排除，不會進 git。",
+  "asof_taipei": "YYYY-MM-DD",
+  "source": "https://www.coinglass.com/LiquidationHeatMap/BTC?mode=coin （範例，非本次真實擷取）",
+  "model": 1,
+  "range": "1 month",
+  "assets": {
+    "BTC": {
+      "spot": 100000,
+      "levels": [
+        {"price": 95000, "usd": 12000000000},
+        {"price": 105000, "usd": 8000000000}
+      ]
+    },
+    "ETH": {
+      "spot": 3000,
+      "levels": [
+        {"price": 2800, "usd": 5000000000},
+        {"price": 3200, "usd": 11000000000}
+      ]
+    }
+  }
+}

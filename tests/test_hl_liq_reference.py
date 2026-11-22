@@ -133,8 +133,29 @@ class NotAnSignalTest(unittest.TestCase):
                    "liquidation_clusters": {"value": "unavailable", "reason": "none"}}
         self.assertEqual(strategies.liq_clusters_value(ev_with)[0], "unavailable")
 
-    def test_evidence_collect_never_fills_liquidation_clusters(self):
+    def test_evidence_collect_without_input_leaves_clusters_unavailable(self):
+        """沒有手動輸入檔時仍 unavailable；Hyperliquid 參考不得填進 liquidation_clusters。"""
         import inspect
         import evidence
         src = inspect.getsource(evidence.collect)
-        self.assertIn('"liquidation_clusters": na(', src)
+        self.assertIn("load_liquidation_clusters", src)
+        self.assertNotIn("hl_liq", src)
+        self.assertNotIn("hl_liquidation", src)
+        from helpers import TempDirs
+        from unittest import mock
+        def boom(*a, **k):
+            raise RuntimeError("no net")
+        with TempDirs():
+            with mock.patch.object(evidence, "bitget", boom), mock.patch.object(evidence, "gate", boom), \
+                    mock.patch.object(evidence, "dydx", boom), \
+                    mock.patch.object(evidence, "binance_funding", boom), mock.patch.object(evidence, "binance_oi", boom), \
+                    mock.patch.object(evidence, "okx", boom), mock.patch.object(evidence, "deribit_perp", boom), \
+                    mock.patch.object(evidence, "hyperliquid", boom), mock.patch.object(evidence, "deribit_dvol", boom), \
+                    mock.patch.object(evidence, "etf_flow", boom), mock.patch.object(evidence, "macro_events", boom), \
+                    mock.patch.object(evidence, "okx_premarket", boom), \
+                    mock.patch.object(evidence, "fomc_decision_days", lambda: []):
+                ev = evidence.collect()
+            for a in ("BTC", "ETH"):
+                liq = ev["assets"][a]["liquidation_clusters"]
+                self.assertEqual(liq["value"], "unavailable")
+                self.assertIn("缺檔", liq["reason"])
