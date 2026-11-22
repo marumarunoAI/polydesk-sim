@@ -1,0 +1,31 @@
+{
+  "slug": "ethereum-above-1800-on-november-28-2026",
+  "kind": "above",
+  "asset": "ETH",
+  "direction": "up",
+  "level": 1800.0,
+  "end_utc": "2026-11-28T17:00:00Z",
+  "fair_yes": 0.145145,
+  "model": "N(d2)",
+  "spot": 1649.15,
+  "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT (1h×720, 1d×1000) + ticker/price",
+  "spot_ts": {
+    "utc": "2026-11-22T05:43:41Z",
+    "taipei": "2026-11-22T13:43:41+08:00",
+    "epoch": 1795326221.619506
+  },
+  "sigma": 0.6481283175968876,
+  "sigma_source": "binance_realized_1h_30d",
+  "T_years": 0.017725,
+  "fomc_in_window": false,
+  "base_rate": 0.1229,
+  "base_rate_samples": 993,
+  "inputs_unavailable": [],
+  "blind_file": "blind/ethereum-above-1800-on-november-28-2026.json",
+  "date_taipei": "2026-11-22",
+  "ts": {
+    "utc": "2026-11-22T05:43:41Z",
+    "taipei": "2026-11-22T13:43:41+08:00",
+    "epoch": 1795326221.755908
+  }
+}
