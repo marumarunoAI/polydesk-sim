@@ -5,27 +5,27 @@
   "direction": "down",
   "level": 1200.0,
   "end_utc": "2026-12-01T05:00:00Z",
-  "fair_yes": 0.001753,
+  "fair_yes": 0.000131,
   "model": "touch=2N(-|ln(X/S)|/(σ√T))",
-  "spot": 1649.15,
+  "spot": 1735.41,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-22T05:43:41Z",
-    "taipei": "2026-11-22T13:43:41+08:00",
-    "epoch": 1795326221.619506
+    "utc": "2026-11-23T05:48:27Z",
+    "taipei": "2026-11-23T13:48:27+08:00",
+    "epoch": 1795412907.476962
   },
-  "sigma": 0.6481283175968876,
+  "sigma": 0.6529290387003488,
   "sigma_source": "binance_realized_1h_30d",
-  "T_years": 0.024574,
+  "T_years": 0.021826,
   "fomc_in_window": false,
-  "base_rate": 0.0252,
-  "base_rate_samples": 991,
+  "base_rate": 0.0161,
+  "base_rate_samples": 992,
   "inputs_unavailable": [],
   "blind_file": "blind/will-ethereum-dip-to-1200-in-november-2026.json",
-  "date_taipei": "2026-11-22",
+  "date_taipei": "2026-11-23",
   "ts": {
-    "utc": "2026-11-22T05:43:47Z",
-    "taipei": "2026-11-22T13:43:47+08:00",
-    "epoch": 1795326227.104626
+    "utc": "2026-11-23T05:48:33Z",
+    "taipei": "2026-11-23T13:48:33+08:00",
+    "epoch": 1795412913.824642
   }
 }

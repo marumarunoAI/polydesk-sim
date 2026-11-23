@@ -5,27 +5,27 @@
   "direction": "up",
   "level": 150000.0,
   "end_utc": "2027-10-01T04:00:00Z",
-  "fair_yes": 0.097087,
+  "fair_yes": 0.053024,
   "model": "touch=2N(-|ln(X/S)|/(σ√T))",
-  "spot": 58800.0,
+  "spot": 61754.35,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-22T05:43:40Z",
-    "taipei": "2026-11-22T13:43:40+08:00",
-    "epoch": 1795326220.925393
+    "utc": "2026-11-23T05:48:26Z",
+    "taipei": "2026-11-23T13:48:26+08:00",
+    "epoch": 1795412906.744983
   },
-  "sigma": 0.6096,
+  "sigma": 0.4962,
   "sigma_source": "deribit_dvol (FOMC in window)",
-  "T_years": 0.857337,
+  "T_years": 0.854588,
   "fomc_in_window": true,
   "base_rate": 0.0,
-  "base_rate_samples": 687,
+  "base_rate_samples": 688,
   "inputs_unavailable": [],
   "blind_file": "blind/will-bitcoin-hit-150k-by-september-30-2027.json",
-  "date_taipei": "2026-11-22",
+  "date_taipei": "2026-11-23",
   "ts": {
-    "utc": "2026-11-22T05:43:44Z",
-    "taipei": "2026-11-22T13:43:44+08:00",
-    "epoch": 1795326224.959493
+    "utc": "2026-11-23T05:48:31Z",
+    "taipei": "2026-11-23T13:48:31+08:00",
+    "epoch": 1795412911.391143
   }
 }

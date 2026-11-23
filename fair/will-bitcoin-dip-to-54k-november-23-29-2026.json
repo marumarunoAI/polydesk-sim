@@ -1,0 +1,33 @@
+{
+  "slug": "will-bitcoin-dip-to-54k-november-23-29-2026",
+  "kind": "reach",
+  "asset": "BTC",
+  "direction": "down",
+  "level": 54000.0,
+  "end_utc": "2026-11-30T05:00:00Z",
+  "fair_yes": 0.061053,
+  "model": "touch=2N(-|ln(X/S)|/(σ√T))",
+  "spot": 61754.35,
+  "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT (1h×720, 1d×1000) + ticker/price",
+  "spot_ts": {
+    "utc": "2026-11-23T05:48:26Z",
+    "taipei": "2026-11-23T13:48:26+08:00",
+    "epoch": 1795412906.744983
+  },
+  "sigma": 0.5185238617054679,
+  "sigma_source": "binance_realized_1h_30d",
+  "T_years": 0.019086,
+  "fomc_in_window": false,
+  "base_rate": 0.0765,
+  "base_rate_samples": 993,
+  "inputs_unavailable": [
+    "window_extremes"
+  ],
+  "blind_file": "blind/will-bitcoin-dip-to-54k-november-23-29-2026.json",
+  "date_taipei": "2026-11-23",
+  "ts": {
+    "utc": "2026-11-23T05:48:29Z",
+    "taipei": "2026-11-23T13:48:29+08:00",
+    "epoch": 1795412909.861732
+  }
+}
