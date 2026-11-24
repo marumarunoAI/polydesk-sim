@@ -1,6 +1,6 @@
 # 日本 Sakura VPS 公開資料來源實測
 
-探測主機為日本 Sakura VPS `os3-364-15171`（`ubuntu@133.167.68.175`，egress IP 經 `https://api.ipify.org` 回 `133.167.68.175`，2026-11-20 22:35:23 Asia/Taipei）。報告時間為台北時間（Asia/Taipei, UTC+8）；VPS 系統時鐘為 JST（UTC+9）。這次只測、不接進 `polydesk-sim` 正式流程或規則；未使用帳號、登入、簽名或需註冊的 API key。VPS 產物僅放在 `~/grok/polydesk-probe/`（系統無 `python3-venv`，未使用 sudo/apt；Python 套件以 `pip install --target ~/grok/polydesk-probe/pydeps` 安裝，未寫入 `~/.local`）。
+探測主機為日本 Sakura VPS `os3-364-15171`（`ubuntu@133.167.68.175`，egress IP 經 `https://api.ipify.org` 回 `133.167.68.175`，2026-11-20 22:35:23 Asia/Taipei）。報告時間為台北時間（Asia/Taipei, UTC+8）；VPS 系統時鐘為 JST（UTC+9）。這次只測、不接進 `polydesk-sim` 正式流程或規則；未使用帳號、登入、簽名或需註冊的 API key。當時 VPS 產物放在 `~/grok/polydesk-probe/`（系統無 `python3-venv`，未使用 sudo/apt；Python 套件以 `pip install --target ~/grok/polydesk-probe/pydeps` 安裝，未寫入 `~/.local`）。2026-11-25 03:32 Asia/Taipei 已將專案搬到 `~/web3/grok_workspace/polydesk-probe/`，並刪除空的 `~/grok`；腳本改為以檔案自身目錄為根路徑。
 
 ## 結論
 
@@ -37,8 +37,8 @@
 - VPS 時間校樣（SSH 登入當下 `date`）：`Fri Nov 20 23:32:13 JST 2026` = `2026-11-20 22:32:13` Asia/Taipei，UTC `2026-11-20 14:32:13`。
 - REST 實測窗口：`2026-11-20T14:35:23Z`–`14:36:09Z`（22:35:23–22:36:09 Asia/Taipei）。請求間隔約 2 秒，未連續大量打 API。
 - WS 實測窗口：`2026-11-20T14:38:58Z`–`14:45:14Z`（22:38:58–22:45:14 Asia/Taipei）。各主題依序聽約 90 秒。
-- 腳本只留在 VPS：`~/grok/polydesk-probe/rest_probe.sh`、`ws_probe.py`、`browser_probe.py`、`cg_visibility.py`。本 repo 只新增本報告。
-- 硬規則執行情況：未動 `~/mev-venv`、`~/rh-latency-probe`、`~/robinhood-mev`（這三個路徑在 `$HOME` 下不存在）；未用 sudo 改系統；未改 `polydesk-sim` 程式或規則。完成時 `ls` 確認 `$HOME` 下新增的目錄只有 `grok/`。`~/grok` 占用 **870M**（2026-11-20 22:46:38 Asia/Taipei，`du -sh ~/grok`；主要是 Playwright 下載的 Chromium）。
+- 腳本現在位於 VPS：`~/web3/grok_workspace/polydesk-probe/`（`rest_probe.sh`、`ws_probe.py`、`browser_probe.py`、`cg_visibility.py`）。2026-11-20 探測當時放在 `~/grok/polydesk-probe/`。本 repo 只新增本報告。
+- 硬規則執行情況：未動 `~/mev-venv`、`~/rh-latency-probe`、`~/robinhood-mev`（這三個路徑在 `$HOME` 下不存在）；未用 sudo 改系統；未改 `polydesk-sim` 程式或規則。完成時 `ls` 確認 `$HOME` 下新增的目錄只有 `grok/`。`~/grok` 占用 **870M**（2026-11-20 22:46:38 Asia/Taipei，`du -sh ~/grok`；主要是 Playwright 下載的 Chromium）。其後刪除無法啟動的 `ms-playwright`，同樹改為 **171M**；2026-11-25 03:32 Asia/Taipei 搬到 `~/web3/grok_workspace/polydesk-probe/` 後 `du -sh` 仍為 **171M**（空的 `~/grok` 已 `rmdir`）。
 - 系統套件缺口（需負責人決定是否 sudo 安裝，本次未裝）：
   - `python3-venv`／`ensurepip` 不可用。若要標準 venv：`sudo apt install python3.12-venv`。
   - Playwright Chromium 已下載到 `~/grok/polydesk-probe/ms-playwright`，但啟動失敗，缺少共用函式庫（`ldd`）：`libatk-1.0.so.0`、`libatk-bridge-2.0.so.0`、`libatspi.so.0`、`libXcomposite.so.1`、`libXdamage.so.1`、`libXfixes.so.3`、`libgbm.so.1`、`libasound.so.2`；完整 `chrome` 另外缺 `libcups.so.2`、`libcairo.so.2`、`libpango-1.0.so.0`。Ubuntu 24.04 對應套件（`apt-cache` 查名，未安裝）：`libatk1.0-0t64`、`libatk-bridge2.0-0t64`、`libatspi2.0-0t64`、`libxcomposite1`、`libxdamage1`、`libxfixes3`、`libgbm1`、`libasound2t64`、`libcups2t64`、`libcairo2`、`libpango-1.0-0`。亦可改用官方 `playwright install-deps`（同樣需要 sudo）。
@@ -137,13 +137,13 @@ VPS 對 `api.bybit.com` 全部 HTTP 200，沒有 403。公開市場端點本輪�
 
 ### 1.4 強平 WebSocket
 
-VPS 指令：
+VPS 指令（2026-11-20 當時路徑；2026-11-25 起改為 `~/web3/grok_workspace/polydesk-probe/`）：
 
 ```bash
 PYTHONPATH=~/grok/polydesk-probe/pydeps python3 ~/grok/polydesk-probe/ws_probe.py
 ```
 
-`websockets==17.4` 裝在 `~/grok/polydesk-probe/pydeps`。各連線監聽 90 秒，依序進行，中間間隔 2 秒。
+`websockets==17.4` 當時裝在 `~/grok/polydesk-probe/pydeps`（現隨專案在新路徑的 `pydeps/`）。各連線監聽 90 秒，依序進行，中間間隔 2 秒。
 
 **Binance `wss://fstream.binance.com/ws/btcusdt@forceOrder`**：`2026-11-20T14:38:59Z` 連上（22:38:59 Asia/Taipei），聽到 `14:40:33Z`（22:40:33 Asia/Taipei），`elapsed=95.01s`，`connected=True`，`error=None`，**事件數 0**。
 
@@ -214,7 +214,7 @@ box 看到的表格欄位（僅作為「當 HTTP 200 時頁面有什麼」的對
 
 ### 2.3 VPS headless Chromium
 
-已在 `~/grok/polydesk-probe` 執行（未用 sudo）：
+已在當時的 `~/grok/polydesk-probe` 執行（未用 sudo；2026-11-25 專案已遷至 `~/web3/grok_workspace/polydesk-probe/`）：
 
 ```bash
 python3 -m pip install --target ~/grok/polydesk-probe/pydeps playwright
