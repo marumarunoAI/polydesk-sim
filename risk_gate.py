@@ -78,4 +78,9 @@ def size_order(q, price, market, exposure, kind="barrier", day=None):
               MAX_ASSET_BARRIERS * BANKROLL - used_a)
     if usd <= 0:
         return 0.0, "exposure cap reached"
+    if round(usd, 2) <= 0:   # 剩餘額度或 Kelly 金額不到 0.005 USD，四捨五入成 0：照實記原因，不寫 "ok"
+        room = min(MAX_PER_BARRIER * BANKROLL - used_m, MAX_ASSET_BARRIERS * BANKROLL - used_a)
+        if room < 0.005:
+            return 0.0, f"exposure cap reached (remaining {room:.4f} USD < 0.01)"
+        return 0.0, f"size too small ({usd:.4f} USD rounds to 0)"
     return round(usd, 2), "ok"

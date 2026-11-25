@@ -54,3 +54,26 @@ class RiskTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RiskOkReasonTest(unittest.TestCase):
+    """剩餘額度 < 0.005 USD 時，以前記成 'SKIP risk: ok'；金額仍是 0，只修原因文字。"""
+    def test_tiny_remaining_cap_reason(self):
+        import risk_gate as rg
+        m = {"slug": "s", "asset": "BTC", "tags": ["crypto"]}
+        cap = rg.MAX_PER_BARRIER * rg.BANKROLL
+        usd, why = rg.size_order(0.6, 0.4, m, {"by_market": {"s": cap - 0.003}, "by_asset_barrier": {}})
+        self.assertEqual(usd, 0.0)
+        self.assertNotEqual(why, "ok")
+        self.assertIn("exposure cap reached", why)
+        acap = rg.MAX_ASSET_BARRIERS * rg.BANKROLL
+        usd, why = rg.size_order(0.6, 0.4, m, {"by_market": {}, "by_asset_barrier": {"BTC": acap - 0.004}})
+        self.assertEqual((usd, "exposure cap reached" in why), (0.0, True))
+        # 正常情況不受影響
+        usd, why = rg.size_order(0.6, 0.4, m, {})
+        self.assertTrue(usd > 0 and why == "ok")
+        # 任何 usd == 0 的回傳都不得寫 "ok"
+        for used in (cap - 0.0049, cap - 0.001, cap):
+            usd, why = rg.size_order(0.6, 0.4, m, {"by_market": {"s": used}, "by_asset_barrier": {}})
+            if usd == 0:
+                self.assertNotEqual(why, "ok")
