@@ -33,6 +33,16 @@ def strategies_for(m, fair):
     return out
 
 
+def trade_invariants_ok(strategy, d):
+    """下單前最後一道檢查：edge 是買進那一側的邊際，必須 > 門檻；S1 只買 YES，S2 只買 NO。"""
+    try:
+        if not float(d["edge"]) > float(d["threshold"]):
+            return False
+    except (KeyError, TypeError, ValueError):
+        return False
+    return {"S1": "YES", "S2": "NO"}.get(strategy, d.get("side")) == d.get("side")
+
+
 def exposure_and_pnl(rows_by_slug):
     """由 tickets 算目前曝險（持有 + 掛單中）與當日損益（今日已實現 + 未實現按 mid）。
     出場單不算曝險；已賣出的部分不再算持有，其出場收入計入已實現。"""
@@ -258,6 +268,8 @@ def _run(hl_liq_ref=0):
             except Exception as e:  # noqa: BLE001  單一市場出錯不中斷整天
                 d = {"decision": "SKIP", "reason": f"error: {type(e).__name__}: {str(e)[:120]}"}
             size, limit, tid, status, fee = 0.0, "", "", "", ""
+            if d["decision"] == "TRADE" and not trade_invariants_ok(s, d):
+                d = dict(d, decision="SKIP", reason=f"internal: invariant failed (side={d.get('side')}, edge={d.get('edge')}, thr={d.get('threshold')})")
             if d["decision"] == "TRADE":
                 q_side = fair["fair_yes"] if d["side"] == "YES" else 1 - fair["fair_yes"]
                 limit = st.limit_for(d["side"], row, q_side, d["threshold"])

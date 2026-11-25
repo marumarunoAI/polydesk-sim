@@ -67,14 +67,15 @@ class PipelineTest(unittest.TestCase):
         self.assertEqual(d["decision"], "NO_EDGE")  # tape 沒確認
         self.assertIn("tape not confirming", d["reason"])
 
-    def test_s1_no_side_vetoed_by_big_cluster(self):
+    def test_s1_never_buys_no(self):
+        # fair < mid：S1 不出 NO 單（那是 S2 的範圍），有無叢集都一樣
         row = dict(ROW, kind="reach", direction="up", level=60000,
                    yes_book=dict(ROW["yes_book"], mid=0.8, best_bid=0.79, best_ask=0.81))
         fair = dict(FAIR, fair_yes=0.5, spot=57000.0)
-        d = st.decide_s1(fair, row, self._ev_with_clusters([{"price": 59000, "usd": 11e9}]))
-        self.assertEqual(d["decision"], "SKIP")
-        d = st.decide_s1(fair, row, self._ev_with_clusters([]))  # 有資料但空 → 沒叢集，不是 unavailable
-        self.assertEqual((d["decision"], d["side"]), ("TRADE", "NO"))
+        for cl in ([{"price": 59000, "usd": 11e9}], []):
+            d = st.decide_s1(fair, row, self._ev_with_clusters(cl))
+            self.assertEqual((d["decision"], d["side"]), ("NO_EDGE", "YES"))
+            self.assertIn("YES only", d["reason"])
 
     def test_s2_cluster_near_strike_vetoes_and_clear_trades(self):
         row = dict(ROW, kind="reach", level=70000, yes_book=dict(ROW["yes_book"], mid=0.10, best_bid=0.09, best_ask=0.11))

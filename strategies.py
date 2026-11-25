@@ -78,29 +78,31 @@ def _oi(ev_a):
 
 
 def decide_s1(fair, row, ev, now=None):
+    """S1 只買 YES：訊號是「價格與關卡之間 ≥ $10B 清算叢集」（DESK_RULES S1 訊號），
+    叢集把價格吸向關卡 = 會觸價 = YES 方向。沒有叢集就沒有 S1 訊號，所以 S1 不出 NO 單；
+    遠檔位買 NO 屬於 S2（賣樂透），由 decide_s2 判斷並套用它自己的否決條件。
+    edge 一律記買進那一側的邊際（YES：fair − mid）。"""
     now = now or now_utc()
     base, out = _base(fair, row, now)
     if out:
         return out
     q, mid, fee, thr = base
     edge = q - mid
-    side = "YES" if edge > 0 else "NO"
-    d = {"side": side, "edge": round(edge, 4), "threshold": round(thr, 4)}
-    if abs(edge) <= thr:
-        return dict(d, decision="NO_EDGE", reason=f"|fair-mid| {abs(edge):.4f} <= fee+2pp {thr:.4f}")
+    d = {"side": "YES", "edge": round(edge, 4), "threshold": round(thr, 4)}
+    if edge <= thr:
+        why = f"YES edge {edge:.4f} <= fee+2pp {thr:.4f}"
+        if -edge > thr:
+            why += " (S1 buys YES only; NO side belongs to S2)"
+        return dict(d, decision="NO_EDGE", reason=why)
     if _hours_left(row, now) <= 24:
         return dict(d, decision="NO_EDGE", reason="within 24h of expiry (exit window)")
     clusters, why = liq_clusters_value(ev["assets"][row["asset"]])
     if clusters == UNAVAILABLE:
         return dict(d, decision="SKIP", reason=f"tape unavailable: liquidation_clusters ({why})")
     usd = liq_between(clusters, fair["spot"], row["level"])
-    big = usd >= LIQ_CLUSTER_MIN_USD
     d["liq_between_usd"] = usd
-    # tape 同方向：買 YES（會觸價）要求價格與關卡之間有 ≥ $10B 叢集；買 NO 要求沒有
-    if side == "YES" and not big:
+    if usd < LIQ_CLUSTER_MIN_USD:
         return dict(d, decision="NO_EDGE", reason=f"tape not confirming: cluster between spot and level ${usd:,.0f} < ${LIQ_CLUSTER_MIN_USD:,.0f}")
-    if side == "NO" and big:
-        return dict(d, decision="SKIP", reason=f"veto: tape cluster ${usd:,.0f} between spot and level against NO")
     return dict(d, decision="TRADE", reason=f"edge > fee+2pp, tape confirms (cluster ${usd:,.0f})")
 
 
@@ -140,11 +142,11 @@ def decide_s3(fair, row, ev, now=None):
     if out:
         return out
     q, mid, fee, thr = base
-    edge = q - mid
-    side = "YES" if edge > 0 else "NO"
+    side = "YES" if q > mid else "NO"
+    edge = (q - mid) if side == "YES" else (mid - q)   # 買進那一側的邊際，TRADE 時一定 > 0
     d = {"side": side, "edge": round(edge, 4), "threshold": round(thr, 4)}
-    if abs(edge) <= thr:
-        return dict(d, decision="NO_EDGE", reason=f"|fair-mid| {abs(edge):.4f} <= fee+2pp {thr:.4f}")
+    if edge <= thr:
+        return dict(d, decision="NO_EDGE", reason=f"|fair-mid| {edge:.4f} <= fee+2pp {thr:.4f}")
     ea = ev["assets"][row["asset"]]
     f8, _ = _funding_8h(ea)
     oi, _ = _oi(ea)

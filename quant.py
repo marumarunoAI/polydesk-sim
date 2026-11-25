@@ -62,21 +62,41 @@ _EXT = {}
 
 def extremes_since(asset, start_dt, now):
     """窗口開始（市場上架時間）至今 Binance 最高/最低價；超過 41 天改用日 K。"""
-    ck = (asset, int(start_dt.timestamp() // 3600))
-    if ck not in _EXT:
+    ck = (asset, int(start_dt.timestamp() // 60))   # 1m 解析度；失敗（None）不快取
+    if _EXT.get(ck) is None:
         _EXT[ck] = _extremes(asset, start_dt, now)
     return _EXT[ck]
 
 
-def _extremes(asset, start_dt, now):
-    start_ms = int(start_dt.timestamp() * 1000)
-    hours = (now - start_dt).total_seconds() / 3600
-    interval, limit = ("1h", min(1000, int(hours) + 2)) if hours <= 990 else ("1d", 1000)
+def _klines_range(asset, interval, start_ms, end_ms, limit):
     rows = get_json(f"{BINANCE}/klines", params={"symbol": SYMBOL[asset], "interval": interval,
-                                                  "startTime": start_ms, "limit": limit})
+                                                  "startTime": start_ms, "endTime": end_ms, "limit": limit})
+    return [(float(r[2]), float(r[3])) for r in rows]
+
+
+def _extremes(asset, start_dt, now):
+    """Binance 的 startTime 只回「開盤時間 ≥ startTime」的 K 棒。上架時間通常不在整點
+    （例如 05:00:17），直接用 1h K 會漏掉包含上架時間的那一根；剛上架不到一小時時
+    甚至整個回空。所以分段抓：上架所在分鐘起的 1m K 到下一個整點，之後用 1h K；
+    超過約 41 天時，整點到隔天 00:00 UTC 用 1h、之後用 1d。"""
+    MIN, HOUR, DAY = 60_000, 3_600_000, 86_400_000
+    s_ms, n_ms = int(start_dt.timestamp() * 1000), int(now.timestamp() * 1000)
+    if s_ms >= n_ms:
+        return None
+    m0 = s_ms // MIN * MIN
+    h1 = -(-s_ms // HOUR) * HOUR
+    rows = _klines_range(asset, "1m", m0, min(h1, n_ms) - 1, 60)
+    if h1 < n_ms:
+        if (n_ms - h1) / HOUR <= 990:
+            rows += _klines_range(asset, "1h", h1, n_ms, 1000)
+        else:
+            d1 = -(-h1 // DAY) * DAY
+            if d1 > h1:
+                rows += _klines_range(asset, "1h", h1, d1 - 1, 24)
+            rows += _klines_range(asset, "1d", d1, n_ms, 1000)
     if not rows:
         return None
-    return max(float(r[2]) for r in rows), min(float(r[3]) for r in rows)
+    return max(r[0] for r in rows), min(r[1] for r in rows)
 
 
 def deribit_iv(asset):
@@ -155,12 +175,16 @@ def price_one(b, inp, iv, fomc, now):
             missing.append("window_start")
         else:
             try:
-                hi, lo = extremes_since(b["asset"], start, now)
+                ext = extremes_since(b["asset"], start, now)
+            except Exception:  # noqa: BLE001  網路/API 失敗 → unavailable（規則 6）
+                ext = None
+            if ext is None:
+                missing.append("window_extremes")
+            else:
+                hi, lo = ext
                 if (b["direction"] == "up" and hi >= b["level"]) or \
                         (b["direction"] == "down" and lo <= b["level"]):
                     fair = 1.0  # 窗口內已觸價（市場可能尚未結算）
-            except Exception:
-                missing.append("window_extremes")
     else:
         fair = above_prob(inp["spot"], b["level"], sigma, T)
     br, n = base_rate(inp["daily"], inp["spot"], b["level"], T * 365, b["kind"], b["direction"])
