@@ -5,27 +5,27 @@
   "direction": "up",
   "level": 2000.0,
   "end_utc": "2026-12-01T05:00:00Z",
-  "fair_yes": 0.141263,
+  "fair_yes": 0.030941,
   "model": "touch=2N(-|ln(X/S)|/(σ√T))",
-  "spot": 1735.41,
+  "spot": 1657.52,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-23T05:48:27Z",
-    "taipei": "2026-11-23T13:48:27+08:00",
-    "epoch": 1795412907.476962
+    "utc": "2026-11-25T05:49:28Z",
+    "taipei": "2026-11-25T13:49:28+08:00",
+    "epoch": 1795585768.634184
   },
-  "sigma": 0.6529290387003488,
+  "sigma": 0.6808505403000216,
   "sigma_source": "binance_realized_1h_30d",
-  "T_years": 0.021826,
+  "T_years": 0.016344,
   "fomc_in_window": false,
-  "base_rate": 0.0978,
-  "base_rate_samples": 992,
+  "base_rate": 0.0332,
+  "base_rate_samples": 994,
   "inputs_unavailable": [],
   "blind_file": "blind/will-ethereum-reach-2000-in-november-2026.json",
-  "date_taipei": "2026-11-23",
+  "date_taipei": "2026-11-25",
   "ts": {
-    "utc": "2026-11-23T05:48:35Z",
-    "taipei": "2026-11-23T13:48:35+08:00",
-    "epoch": 1795412915.7238
+    "utc": "2026-11-25T05:49:54Z",
+    "taipei": "2026-11-25T13:49:54+08:00",
+    "epoch": 1795585794.987356
   }
 }

@@ -1,0 +1,31 @@
+{
+  "slug": "bitcoin-above-58k-on-november-30-2026",
+  "kind": "above",
+  "asset": "BTC",
+  "direction": "up",
+  "level": 58000.0,
+  "end_utc": "2026-11-30T17:00:00Z",
+  "fair_yes": 0.598852,
+  "model": "N(d2)",
+  "spot": 59118.99,
+  "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT (1h×720, 1d×1000) + ticker/price",
+  "spot_ts": {
+    "utc": "2026-11-25T05:49:27Z",
+    "taipei": "2026-11-25T13:49:27+08:00",
+    "epoch": 1795585767.937341
+  },
+  "sigma": 0.5498217991207709,
+  "sigma_source": "binance_realized_1h_30d",
+  "T_years": 0.014974,
+  "fomc_in_window": false,
+  "base_rate": 0.6519,
+  "base_rate_samples": 994,
+  "inputs_unavailable": [],
+  "blind_file": "blind/bitcoin-above-58k-on-november-30-2026.json",
+  "date_taipei": "2026-11-25",
+  "ts": {
+    "utc": "2026-11-25T05:49:28Z",
+    "taipei": "2026-11-25T13:49:28+08:00",
+    "epoch": 1795585768.73486
+  }
+}

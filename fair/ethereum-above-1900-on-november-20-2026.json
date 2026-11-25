@@ -7,25 +7,25 @@
   "end_utc": "2026-11-20T17:00:00Z",
   "fair_yes": 0.0,
   "model": "N(d2)",
-  "spot": 1735.41,
+  "spot": 1657.52,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-23T05:48:27Z",
-    "taipei": "2026-11-23T13:48:27+08:00",
-    "epoch": 1795412907.476962
+    "utc": "2026-11-25T05:49:28Z",
+    "taipei": "2026-11-25T13:49:28+08:00",
+    "epoch": 1795585768.634184
   },
-  "sigma": 0.6529290387003488,
+  "sigma": 0.6808505403000216,
   "sigma_source": "binance_realized_1h_30d",
   "T_years": 0.0,
   "fomc_in_window": false,
-  "base_rate": 0.015,
+  "base_rate": 0.003,
   "base_rate_samples": 999,
   "inputs_unavailable": [],
   "blind_file": "blind/ethereum-above-1900-on-november-20-2026.json",
-  "date_taipei": "2026-11-23",
+  "date_taipei": "2026-11-25",
   "ts": {
-    "utc": "2026-11-23T05:48:27Z",
-    "taipei": "2026-11-23T13:48:27+08:00",
-    "epoch": 1795412907.633361
+    "utc": "2026-11-25T05:49:28Z",
+    "taipei": "2026-11-25T13:49:28+08:00",
+    "epoch": 1795585768.784545
   }
 }

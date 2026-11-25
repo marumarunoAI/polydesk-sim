@@ -5,27 +5,27 @@
   "direction": "up",
   "level": 66000.0,
   "end_utc": "2026-11-27T17:00:00Z",
-  "fair_yes": 0.11744,
+  "fair_yes": 0.006966,
   "model": "N(d2)",
-  "spot": 61754.35,
+  "spot": 59118.99,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-23T05:48:26Z",
-    "taipei": "2026-11-23T13:48:26+08:00",
-    "epoch": 1795412906.744983
+    "utc": "2026-11-25T05:49:27Z",
+    "taipei": "2026-11-25T13:49:27+08:00",
+    "epoch": 1795585767.937341
   },
-  "sigma": 0.5185238617054679,
+  "sigma": 0.5498217991207709,
   "sigma_source": "binance_realized_1h_30d",
-  "T_years": 0.012237,
+  "T_years": 0.006755,
   "fomc_in_window": false,
-  "base_rate": 0.1005,
-  "base_rate_samples": 995,
+  "base_rate": 0.009,
+  "base_rate_samples": 997,
   "inputs_unavailable": [],
   "blind_file": "blind/bitcoin-above-66k-on-november-27-2026.json",
-  "date_taipei": "2026-11-23",
+  "date_taipei": "2026-11-25",
   "ts": {
-    "utc": "2026-11-23T05:48:27Z",
-    "taipei": "2026-11-23T13:48:27+08:00",
-    "epoch": 1795412907.597051
+    "utc": "2026-11-25T05:49:28Z",
+    "taipei": "2026-11-25T13:49:28+08:00",
+    "epoch": 1795585768.747864
   }
 }

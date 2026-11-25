@@ -5,27 +5,27 @@
   "direction": "up",
   "level": 110000.0,
   "end_utc": "2027-01-01T05:00:00Z",
-  "fair_yes": 0.00037,
+  "fair_yes": 0.000245,
   "model": "touch=2N(-|ln(X/S)|/(σ√T))",
-  "spot": 61754.35,
+  "spot": 59118.99,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-23T05:48:26Z",
-    "taipei": "2026-11-23T13:48:26+08:00",
-    "epoch": 1795412906.744983
+    "utc": "2026-11-25T05:49:27Z",
+    "taipei": "2026-11-25T13:49:27+08:00",
+    "epoch": 1795585767.937341
   },
-  "sigma": 0.4962,
+  "sigma": 0.532,
   "sigma_source": "deribit_dvol (FOMC in window)",
-  "T_years": 0.106757,
+  "T_years": 0.101276,
   "fomc_in_window": true,
   "base_rate": 0.0,
-  "base_rate_samples": 961,
+  "base_rate_samples": 963,
   "inputs_unavailable": [],
   "blind_file": "blind/will-bitcoin-reach-110000-by-december-31-2026-658-339-969.json",
-  "date_taipei": "2026-11-23",
+  "date_taipei": "2026-11-25",
   "ts": {
-    "utc": "2026-11-23T05:48:31Z",
-    "taipei": "2026-11-23T13:48:31+08:00",
-    "epoch": 1795412911.578573
+    "utc": "2026-11-25T05:49:39Z",
+    "taipei": "2026-11-25T13:49:39+08:00",
+    "epoch": 1795585779.733032
   }
 }

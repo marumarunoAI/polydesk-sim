@@ -7,25 +7,25 @@
   "end_utc": "2026-12-01T05:00:00Z",
   "fair_yes": 1.0,
   "model": "touch=2N(-|ln(X/S)|/(σ√T))",
-  "spot": 61754.35,
+  "spot": 59118.99,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-23T05:48:26Z",
-    "taipei": "2026-11-23T13:48:26+08:00",
-    "epoch": 1795412906.744983
+    "utc": "2026-11-25T05:49:27Z",
+    "taipei": "2026-11-25T13:49:27+08:00",
+    "epoch": 1795585767.937341
   },
-  "sigma": 0.5185238617054679,
+  "sigma": 0.5498217991207709,
   "sigma_source": "binance_realized_1h_30d",
-  "T_years": 0.021826,
+  "T_years": 0.016344,
   "fomc_in_window": false,
-  "base_rate": 0.6431,
-  "base_rate_samples": 992,
+  "base_rate": 1.0,
+  "base_rate_samples": 994,
   "inputs_unavailable": [],
   "blind_file": "blind/will-bitcoin-dip-to-60k-in-november-2026.json",
-  "date_taipei": "2026-11-23",
+  "date_taipei": "2026-11-25",
   "ts": {
-    "utc": "2026-11-23T05:48:30Z",
-    "taipei": "2026-11-23T13:48:30+08:00",
-    "epoch": 1795412910.801128
+    "utc": "2026-11-25T05:49:36Z",
+    "taipei": "2026-11-25T13:49:36+08:00",
+    "epoch": 1795585776.938232
   }
 }
