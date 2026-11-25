@@ -1,0 +1,162 @@
+AI is getting better faster than people can keep up with it.
+most people still use it to write emails. a few already use it to run machines that make them $100K+.
+the clearest place to see the gap is Polymarket.
+about 1 wallet in 200 there is a bot. those bots place 63% of all trades.
+the accounts that trade like machines, 4.1% of them, took $246.8M. everyone else lost $338.9M.
+the #1 crypto wallet on the board made $259K in the last 30 days. most people reading this have never placed a single order there.
+on November 9 Anthropic released Fable 5.2. building that kind of machine stopped being a job for a quant team. now it takes one person and one AI.
+ 
+this course builds a real trading system with you. five AI seats: one finds the market, one prices it, one reads the live market, one checks the risk, one keeps score. then it waits for your yes.
+every rule comes from wallets that already win. we pulled 36 profitable wallets from Polymarket's public data and kept what one person can run.
+by the end you have a system that trades where machines already take millions, and a real shot at changing what your month looks like.
+why Polymarket is where AI makes money right now
+the desk in one minute
+the tape reader, the seat that gives the desk eyes
+one rule file and five charters
+five strategies with entry, size, exit and kill rules
+a day on the desk, then all of it on one screen
+ 
+why Polymarket is where AI makes money right now
+the bots aren't making millions there by accident.
+Polymarket is a market where you bet on what happens next. will Bitcoin reach $X this month? will the Fed cut rates? you buy YES or NO, and a share pays $1 if you're right.
+the price is the crowd's guess. a share at 40 cents means the crowd says 40%.
+so the whole game is one question: is the crowd's number wrong? checking that, all day, on hundreds of markets, is exactly what an AI does best.
+three things make it the best place to point one.
+the score is public. every wallet, trade and result sits in a public API, so you can study the winners before you risk a dollar.
+the money is new. Kalshi and Polymarket together traded $0.8B a month in July 2024 and $53B a month in July 2026, counted in contracts.
+every market resolves by a written rule and a named source. reading rules and numbers all day is the job Fable 5.2 made cheap, and it ranks #1 on the Vals Finance Agent benchmark at $4.83 a task.
+ 
+the richest board for one person is crypto. markets like "will Bitcoin reach $X this month" are where #1 and #3 on the all-time crypto leaderboard make their money. that board asks for three things: a formula, a careful reading of the rule, and live data on what the market is doing right now.
+ 
+the desk in one minute
+most people who try this open one chat, paste a market and ask "yes or no". the model has seen the price, so it hands the price back with an essay attached.
+a desk splits the job across five seats so none of them can cheat: Scout, Quant, Tape Reader, Risk and Auditor. the only seat that can spend money is you.
+ 
+a prompt is a rule. a folder is a wall.
+you do not write these files. open Claude Code in an empty folder, paste this article and ask Fable 5.2 to build the tree, the rule file, the charters and the scripts.
+the Quant is handed `blind/` and nothing else. that folder holds the rule text and no prices, so the Quant cannot lean on a number it cannot open.
+its blind number comes from a script Fable 5.2 wrote, running on free Binance candles. the desk never asks Fable to guess. Fable decides the forks: what the rule text means, and what to do when the formula and the tape disagree.
+Fable 5.2 costs 80 times more than Haiku 5.5 on input, so it sits only in those forks.
+four seats run on Claude. the fifth, the Tape Reader, runs on Minara, and it's the one the desk can't do without.
+Minara is a crypto AI agent that already sits on every live feed this desk needs: liquidations, funding, ETF flows, token unlocks, premarket prices. wiring those yourself means several APIs, paid keys and days of glue code. with Minara it's one install and one sentence every morning.
+without it the Quant prices in the dark, and three of the five strategies below simply don't run.
+ 
+ 
+the tape reader, the seat that gives the desk eyes
+Fable 5.2 can read the rules. it cannot see the tape.
+the tape is what the market is doing this minute. five parts of it decide these markets.
+liquidations, the price levels where traders on borrowed money get closed by force. they drag price through a level
+funding and open interest, the cost and size of those borrowed bets
+what the US spot ETFs bought or sold yesterday
+which locked tokens get released for sale before a market expires
+what a token already costs premarket, before its launch
+web search answers with articles from hours ago. the desk needs numbers with a time on them, and Minara gives it all five from one place.
+its skill installs into Claude Code with one setup line from its docs and a login. `ask` works on the free plan, which starts with 300 credits, and this link adds 200 more: https://minara.ai/r/ARGONA0X
+the free credits are enough to run your first mornings on the desk and see the tape for yourself.
+then the Tape Reader runs this once per asset, every morning.
+ 
+the tape comes back one line per item, each with a source and a time. this is a real run from the morning this article was written, on Fable 5.2 inside Minara. under the hood those feeds are tools named `getLiqHeatMap`, `getFundingRateOHLC`, `getETFInflow`, `getExchangeTokenFlow`, `getUpcomingTokenUnlocks` and `getPreMarketTokenInfo`. you never call them, its agent picks them from your sentence.
+try the same morning with free sources only. funding comes from Binance, ETF flows from Farside, each wired by hand. the liquidation map, exchange flows and premarket prices don't come at all. the desk's rule for a missing input is SKIP, so a desk without the tape skips exactly the trades that pay.
+ 
+ 
+the Tape Reader never gives a probability. the Quant prices first and blind, then the tape confirms the trade or vetoes it.
+ 
+DESK_RULES.md
+strategy lives in one file that every seat rereads.
+ 
+fair is the desk's own probability and mid is the market price, halfway between the best buy and sell orders. a maker leaves a limit order and waits, a taker hits an order that is already there and pays the fee. Kelly is the formula that sizes a bet from your edge, and pp is percentage points.
+ 
+five charters, one shape
+a charter is four lines: own, do, output, stop. the stop line keeps a seat out of its neighbour's job.
+ 
+ 
+five strategies, each with a kill rule
+1. Liquidation Magnet
+a barrier market is an option. "will Bitcoin reach $X this month" pays if any Binance 1-minute candle touches the level once. traders call that a one-touch option, and any options textbook prices it.
+`touch ≈ 2 × N(−|ln(X/S)| / (σ√T))`
+S is the price now, X the level, σ how much the price swings, T the time left, N the bell-curve table. you do not do this math. the script returns one number, the fair chance of a touch.
+the crowd prices these markets by how far the level looks. what actually breaks a barrier is a cascade of liquidations, and only the tape shows where they sit.
+a study of 4,860 Polymarket Bitcoin and Ethereum contracts found the biggest gaps against options math in exactly these reach and dip markets: about 3.8 points when a market lists, close to zero by expiry. the edge is richest in the first days, so the desk prices every new barrier the morning it appears.
+ 
+the #1 crypto wallet on Polymarket lives here and holds a position for about 100 hours. it bought "BTC dip to $77,500 in October" at 0.262 and made $56K. +$259K in the last 30 days.
+https://polymarket.com/profile/0xf705fa045201391d9632b7f3cde06a5e24453ca7?via=argona
+signal: `fair_touch` plus the base rate (how often Bitcoin moved this far in this many days). then the tape shows a liquidation cluster between price and the barrier, $10B or more. on November 11 the tape showed $12.1B to $14.1B stacked 3% above spot. that cluster comes from Minara's liquidation map, the one input no free API gives you.
+entry: fair and market differ by more than fee + 2 pp, and the tape points the same way. limit order.
+size: Kelly × 0.1 to 0.25, at most 3% of bankroll per barrier. all Bitcoin barriers count as one bet, 6% of bankroll in total.
+exit: the gap shrinks under 0.5 pp, or 24 hours before expiry.
+kill: after 30 resolved trades the desk's Brier score (how far your probabilities were from what happened) is no better than the market's.
+ 
+realised volatility runs low around big events. before the Fed meeting on December 9 and 10, widen the range by hand or take implied volatility from Deribit, which is free.
+2. The Longshot Tax
+people overpay for lottery tickets. across 8,690 Polymarket markets, outcomes priced at 1 to 5 cents won 1.2% of the time against a price of 2.4%.
+so the desk sells the lottery. it bets NO on the far levels, called strikes, inside "what price will Bitcoin hit in 2026", and only on days when the tape shows no cascade loading.
+ 
+the #3 crypto wallet does exactly this. it keeps 83% of its value on NO and made $76K in 30 days.
+the pattern holds across the board. a backtest of 80 closed crypto touch markets found YES priced above what actually happened in every probability band, and selling it 30 days out returned +3.3% a month. on reach markets that was 14 wins out of 14.
+https://polymarket.com/profile/0xcc500cbcc8b7cf5bd21975ebbea34f21b5644c82?via=argona
+signal: the market's YES price sits above `fair_touch` on a far strike, at least 2× the math. on the far wings it is often 6× to 25×.
+veto: a liquidation cluster near the strike, funding at an extreme (5× the normal 0.01% per 8 hours or more), the Fed meeting inside the window, or locked tokens released before expiry on an altcoin market.
+entry: a resting limit order on NO. never at 0.97 or above.
+size: at most 3% of bankroll per barrier, because a loss takes the whole position.
+exit: under 0.5 pp of edge, 24 hours before expiry, or the moment a veto appears.
+kill: one loss bigger than three months of this strategy's gains.
+ 
+every veto on that list is a line from the morning tape. no Minara, no vetoes, no trade.
+3. Noon Print and the Mirror
+"Bitcoin above $X on November 11" resolves on the Binance 1-minute close at 12:00 ET. the same day has a row of these markets at different levels, the ladder, and one textbook formula, `N(d2)`, prices all of them.
+ 
+the Mirror is the second check. take the same level and window in a "hit" market and an "above" market. touching a level is about twice as likely as closing above it.
+hit ≈ 2 × above
+this is the reflection principle from options math: a price that touches a level is as likely to finish below it as above it, so the touch is worth about twice the close.
+ 
+when the two prices sit far from that ratio, one market is off. the mismatch tells the Quant which market to recheck, and the tape tells it which side is wrong.
+signal: the level priced furthest from the formula, or a hit/above pair priced below 1.6 or above 2.4.
+the tape picks the side: a macro release before noon ET, funding and open interest, yesterday's ETF flow.
+entry: gap above fee + 2 pp, limit order, sized like strategy 1.
+exit: hold to the noon print, or leave under 0.5 pp.
+kill: the same Brier gate as strategy 1. nothing shorter than daily, ever.
+ 
+4. Premarket Peek
+some markets ask what a new token will be worth, like "<token> FDV above $X one day after launch". FDV is the token price times its total supply.
+the token often trades somewhere before launch. that premarket price times supply is an FDV the crowd mostly does not see.
+ 
+premarket prices sit in no free API, so this whole strategy runs through Minara. if you skipped the link above, here it is again: https://minara.ai/r/ARGONA0X
+signal: `implied_FDV = premarket price × total supply`, set against every strike.
+haircut: 30%. Merlin opened 30% under its premarket, Wormhole sat 40% under it three days later, while Hyperliquid and Aevo premarkets usually converge on the launch price in the last 10 days.
+entry: only strikes at least 25% away from implied FDV after the haircut. limit order.
+size: at most 5 to 10% of visible depth, because these books are thin.
+exit: at resolution. leave if the premarket goes quiet or the launch date moves.
+kill: no premarket venue, or the launch slips past the market's deadline. the rule itself is exact: total supply × price at 4:00 PM ET the day after launch, from the most liquid source, and no launch by the deadline resolves NO.
+ 
+5. Written Fact
+most people who buy "sure things" at 97 to 99 cents lose money. the wallets that win here do one thing differently: they buy an outcome only after the official source has published it and before the market has resolved.
+the wallet that does it best bought "no change after October meeting" at 0.939 and made $143K. +$357K in the last 30 days.
+https://polymarket.com/profile/0xed107a85a4585a381e48c7f7ca4144909e7dd2e5?via=argona
+ 
+the next window is "Fed Decision in December?", which trades $4.55M a day and closes December 10.
+signal: the outcome is already published on the market's own resolution source.
+entry: price at or below 0.985, at most 7 days to resolution, annualised return of 50% or more.
+exclude: vague wording, "clarifications" in the description, an open dispute.
+size: at most 2 to 5% of bankroll.
+exit: resolution. never on live sports.
+kill: any trade entered before the source published suspends the seat.
+ 
+this seat needs Fable 5.2 and a browser, and nothing else.
+ 
+a day on the desk
+the anchor is the Binance print at 12:00 ET, where the daily markets resolve. each daily market lists a week ahead at exactly 12:00 ET, and ETF issuers post yesterday's flows between 5 and 11 PM ET, so the morning tape always has the full number.
+ 
+ 
+ 
+the journal and the kill switch
+the journal logs every forecast, traded or not, one row each: fair value, market price at entry, decision, size, fee, result, and two scores, `brier_desk` and `brier_market`.
+every Sunday Fable 5.2 reads it and answers one question: is each strategy still beating the market? the ones that are get more size. the ones that aren't hit their own kill rule.
+the kill switch lives in three places. the daily loss limit is in `risk_gate.py`. each strategy carries its own kill rule. the folder holds no wallet key, so the desk cannot place an order without you.
+ 
+ 
+the whole desk on one screen
+ 
+ 
+tonight, let Fable 5.2 build the `polydesk/` system from this article and price one "Bitcoin above" market blind. open the price after `fair/` is written.
+tomorrow morning give the desk its eyes: install Minara, run the first `minara ask`, and watch the tape fill `evidence/`. start here, the link adds 200 free credits: https://minara.ai/r/ARGONA0X
+from then on the desk runs every morning, and the only thing it waits for is your yes.

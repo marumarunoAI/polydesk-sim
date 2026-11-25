@@ -1,0 +1,34 @@
+{
+  "slug": "will-ethereum-dip-to-500-by-december-31-2026-from-june-8",
+  "market_id": "2468461",
+  "condition_id": "0x7f1bdc71872693ad0e74f35b4b6c6bdc66d1651c089f8f2beb7e3c53530477b7",
+  "question": "Will Ethereum dip to $500 by December 31, 2026?",
+  "kind": "reach",
+  "asset": "ETH",
+  "direction": "down",
+  "level": 500.0,
+  "rules": "This market will resolve to \"Yes\" if any Binance 1 minute candle for Ethereum (ETH/USDT) between the creation of this market through 11:59 PM ET on the last day of the year specified in the title has a final “Low” price equal to or lower than the price specified in the title. Otherwise, this market will resolve to \"No\". Price action before this market's creation will not be considered.\n\nThe resolution source for this market is Binance, specifically the ETH/USDT “Low” prices available at https://www.binance.com/en/trade/ETH_USDT, with the chart settings on \"1m\" for one-minute candles selected on the top bar.\n\nPlease note that the outcome of this market depends solely on the price data from the Binance ETH/USDT trading pair. Prices from other exchanges, different trading pairs, or spot markets will not be considered for the resolution of this market.",
+  "resolution_source": "https://www.binance.com/en/trade/ETH_USDT",
+  "start_utc": "2026-06-08T05:29:17.406Z",
+  "end_utc": "2027-01-01T05:00:00Z",
+  "end_taipei": "2027-01-01T13:00:00+08:00",
+  "event_slug": "what-price-will-ethereum-hit-before-2027",
+  "event_title": "What price will Ethereum hit in 2026?",
+  "yes_token": "29334153842174344472416790707402436344015887639701808266313355632712219578177",
+  "no_token": "8261021700076881055720357115533959679556274539531062572604189799479790207217",
+  "tick_size": 0.001,
+  "min_order_size": 5,
+  "tags": [
+    "ethereum",
+    "hit-price",
+    "crypto-prices",
+    "yearly",
+    "crypto",
+    "earn-4"
+  ],
+  "written_at": {
+    "utc": "2026-11-20T09:50:55Z",
+    "taipei": "2026-11-20T17:50:55+08:00",
+    "epoch": 1795168255.489194
+  }
+}

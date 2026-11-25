@@ -1,0 +1,34 @@
+{
+  "slug": "will-bitcoin-reach-250000-by-december-31-2026-579-442",
+  "market_id": "1057883",
+  "condition_id": "0x6fefc0438c7598b23531457c8c60541990d0786bd4bd9dfc3eabc8d95c291092",
+  "question": "Will Bitcoin reach $250,000 by December 31, 2026?",
+  "kind": "reach",
+  "asset": "BTC",
+  "direction": "up",
+  "level": 250000.0,
+  "rules": "This market will immediately resolve to \"Yes\" if any Binance 1 minute candle for Bitcoin (BTC/USDT) between November 24, 2025, 14:00 and December 31, 2026, 23:59 in the ET timezone has a final \"High\" price equal to or greater than the price specified in the title. Otherwise, this market will resolve to \"No.\"\n\nThe resolution source for this market is Binance, specifically the BTC/USDT \"High\" prices available at https://www.binance.com/en/trade/BTC_USDT, with the chart settings on \"1m\" for one-minute candles selected on the top bar.\n\nPlease note that the outcome of this market depends solely on the price data from the Binance BTC/USDT trading pair. Prices from other exchanges, different trading pairs, or spot markets will not be considered for the resolution of this market.",
+  "resolution_source": "https://www.binance.com/en/trade/BTC_USDT",
+  "start_utc": "2025-12-29T15:18:04.321Z",
+  "end_utc": "2027-01-01T05:00:00Z",
+  "end_taipei": "2027-01-01T13:00:00+08:00",
+  "event_slug": "what-price-will-bitcoin-hit-before-2027",
+  "event_title": "What price will Bitcoin hit in 2026?",
+  "yes_token": "13433573766910980267981622064090484781359464703732825845886677588040916221533",
+  "no_token": "68320692409850091190490975441025843632582876963922128660910974326175304515755",
+  "tick_size": 0.001,
+  "min_order_size": 5,
+  "tags": [
+    "bitcoin",
+    "yearly",
+    "hit-price",
+    "crypto-prices",
+    "crypto",
+    "earn-4"
+  ],
+  "written_at": {
+    "utc": "2026-11-20T09:50:55Z",
+    "taipei": "2026-11-20T17:50:55+08:00",
+    "epoch": 1795168255.489194
+  }
+}

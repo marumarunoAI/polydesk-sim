@@ -1,0 +1,34 @@
+{
+  "slug": "will-ethereum-reach-8000-by-december-31-2026",
+  "market_id": "701540",
+  "condition_id": "0xac0b4316113b50e0e667918aee72fa0eb006342245a52ab6371f3732af5733c8",
+  "question": "Will Ethereum reach $8,000 by December 31, 2026?",
+  "kind": "reach",
+  "asset": "ETH",
+  "direction": "up",
+  "level": 8000.0,
+  "rules": "This market will immediately resolve to “Yes” if any Binance 1-minute candle for Ethereum (ETH/USDT) between November 24, 2025, 14:00 and December 31, 2026, 23:59 in the ET timezone has a final “High” price equal to or greater than the price specified in the title. Otherwise, this market will resolve to “No.”\n\nThe resolution source for this market is Binance, specifically the ETH/USDT “High” prices available at:\nhttps://www.binance.com/en/trade/ETH_USDT with the chart set to “1m” (one-minute candles) on the top bar.\n\nPlease note that the outcome of this market depends solely on the price data from the Binance ETH/USDT trading pair. Prices from other exchanges, different trading pairs, or spot markets will not be considered for the resolution of this market.",
+  "resolution_source": "https://www.binance.com/en/trade/ETH_USDT",
+  "start_utc": "2025-11-24T19:27:18.247Z",
+  "end_utc": "2027-01-01T05:00:00Z",
+  "end_taipei": "2027-01-01T13:00:00+08:00",
+  "event_slug": "what-price-will-ethereum-hit-before-2027",
+  "event_title": "What price will Ethereum hit in 2026?",
+  "yes_token": "85972108245991027667754125260743289992024613278835089125395027557498850655366",
+  "no_token": "4544272783914141796165449995395706887315367806308892987385613368316463514777",
+  "tick_size": 0.001,
+  "min_order_size": 5,
+  "tags": [
+    "ethereum",
+    "hit-price",
+    "crypto-prices",
+    "yearly",
+    "crypto",
+    "earn-4"
+  ],
+  "written_at": {
+    "utc": "2026-11-20T09:50:55Z",
+    "taipei": "2026-11-20T17:50:55+08:00",
+    "epoch": 1795168255.489194
+  }
+}

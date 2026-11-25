@@ -1,0 +1,35 @@
+{
+  "slug": "ethereum-above-1900-on-november-21-2026",
+  "market_id": "7042778",
+  "condition_id": "0x0d42f22b0138cc716ef944e4468d043da998ff703b889d43faac1f845297399a",
+  "question": "Will the price of Ethereum be above $1,900 on November 21?",
+  "kind": "above",
+  "asset": "ETH",
+  "direction": "up",
+  "level": 1900.0,
+  "rules": "This market will resolve to \"Yes\" if the Binance 1 minute candle for ETH/USDT closing at 12:00 in the ET timezone (noon) on the date specified in the title has a final \"Close\" price higher than the price specified in the title. Otherwise, this market will resolve to \"No\".\n\nThe resolution source for this market is Binance, specifically the ETH/USDT \"Close\" prices currently available at https://www.binance.com/en/trade/ETH_USDT with \"1m\" and \"Candles\" selected on the top bar.\n\nPlease note that this market is about the price according to Binance ETH/USDT, not according to other exchanges or trading pairs.\n\nPrice precision is determined by the number of decimal places in the source.",
+  "resolution_source": "https://www.binance.com/en/trade/ETH_USDT",
+  "start_utc": "2026-11-14T17:00:15Z",
+  "end_utc": "2026-11-21T17:00:00Z",
+  "end_taipei": "2026-11-22T01:00:00+08:00",
+  "event_slug": "ethereum-above-on-november-21-2026",
+  "event_title": "Ethereum above ___ on November 21?",
+  "yes_token": "102792227426604652626105355764270818730409609524767819840709356306436349374495",
+  "no_token": "60193092578907405921073991972780895370125506897640282141929277410195237240074",
+  "tick_size": 0.001,
+  "min_order_size": 5,
+  "tags": [
+    "ethereum",
+    "weekly",
+    "multi-strikes",
+    "crypto",
+    "crypto-prices",
+    "recurring",
+    "hide-from-new"
+  ],
+  "written_at": {
+    "utc": "2026-11-20T09:50:55Z",
+    "taipei": "2026-11-20T17:50:55+08:00",
+    "epoch": 1795168255.489194
+  }
+}

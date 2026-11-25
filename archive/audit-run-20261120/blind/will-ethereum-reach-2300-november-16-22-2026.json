@@ -1,0 +1,35 @@
+{
+  "slug": "will-ethereum-reach-2300-november-16-22-2026",
+  "market_id": "7085190",
+  "condition_id": "0xf2904ead5d3274ee20a5bce99462324b62a11697b28c8cb928aa52a60b3d80f2",
+  "question": "Will Ethereum reach $2,300 November 16-22?",
+  "kind": "reach",
+  "asset": "ETH",
+  "direction": "up",
+  "level": 2300.0,
+  "rules": "This market will immediately resolve to \"Yes\" if any Binance 1-minute candle for ETH/USDT during the date range specified in the title (from 12:00 AM ET on the first date to 11:59 PM ET on the last) has a final \"High\" price equal to or greater than the price specified in the title. Otherwise, this market will resolve to \"No\".\n\nThe resolution source for this market is Binance, specifically the ETH/USDT \"High\" prices available at https://www.binance.com/en/trade/ETH_USDT, with the chart settings on \"1m\" candles selected on the top bar.\n\nPlease note that the outcome of this market depends solely on the price data from the Binance ETH/USDT trading pair. Prices from other exchanges, different trading pairs, or spot markets will not be considered for the resolution of this market.",
+  "resolution_source": "https://www.binance.com/en/trade/ETH_USDT",
+  "start_utc": "2026-11-16T05:00:20Z",
+  "end_utc": "2026-11-23T05:00:00Z",
+  "end_taipei": "2026-11-23T13:00:00+08:00",
+  "event_slug": "what-price-will-ethereum-hit-november-16-22-2026",
+  "event_title": "What price will Ethereum hit November 16-22?",
+  "yes_token": "66439577284528532079288944609472313905096333663157731814552860141631392486687",
+  "no_token": "43015312188721739431656041069413364733154502106311973094831634756867682136984",
+  "tick_size": 0.001,
+  "min_order_size": 5,
+  "tags": [
+    "ethereum",
+    "weekly",
+    "hit-price",
+    "crypto",
+    "crypto-prices",
+    "recurring",
+    "hide-from-new"
+  ],
+  "written_at": {
+    "utc": "2026-11-20T09:50:55Z",
+    "taipei": "2026-11-20T17:50:55+08:00",
+    "epoch": 1795168255.489194
+  }
+}

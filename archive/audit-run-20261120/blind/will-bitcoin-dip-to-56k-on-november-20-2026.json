@@ -1,0 +1,36 @@
+{
+  "slug": "will-bitcoin-dip-to-56k-on-november-20-2026",
+  "market_id": "7189810",
+  "condition_id": "0xf04d9fef3703184fc1e6fce29a94c41d7a327c83d00a8abc7bc49f3c6a8a72ca",
+  "question": "Will Bitcoin dip to $56,000 on November 20?",
+  "kind": "reach",
+  "asset": "BTC",
+  "direction": "down",
+  "level": 56000.0,
+  "rules": "This market will immediately resolve to \"Yes\" if any Binance 1 minute candle for Bitcoin (BTC/USDT) on the date specified in the title, between 12:00 AM ET and 11:59 PM ET has a final \"Low\" price equal to or lower than the price specified in the title. Otherwise, this market will resolve to \"No.\"\n\nThe resolution source for this market is Binance, specifically the BTC/USDT \"Low\" prices available at https://www.binance.com/en/trade/BTC_USDT, with the chart settings on \"1m\" for one-minute candles selected on the top bar.\n\nPlease note that the outcome of this market depends solely on the price data from the Binance BTC/USDT trading pair. Prices from other exchanges, different trading pairs, or spot markets will not be considered for the resolution of this market.",
+  "resolution_source": "https://www.binance.com/en/trade/BTC_USDT",
+  "start_utc": "2026-11-20T05:00:13Z",
+  "end_utc": "2026-11-21T05:00:00Z",
+  "end_taipei": "2026-11-21T13:00:00+08:00",
+  "event_slug": "what-price-will-bitcoin-hit-on-november-20-2026",
+  "event_title": "What price will Bitcoin hit on November 20?",
+  "yes_token": "98691850219254058584497823370312904119242927216213484643697007242701244457281",
+  "no_token": "79254105183798462751572109356348923442594429401484700885368323897933245835217",
+  "tick_size": 0.001,
+  "min_order_size": 5,
+  "tags": [
+    "crypto",
+    "crypto-prices",
+    "recurring",
+    "hide-from-new",
+    "bitcoin",
+    "daily",
+    "today",
+    "hit-price"
+  ],
+  "written_at": {
+    "utc": "2026-11-20T09:50:55Z",
+    "taipei": "2026-11-20T17:50:55+08:00",
+    "epoch": 1795168255.489194
+  }
+}

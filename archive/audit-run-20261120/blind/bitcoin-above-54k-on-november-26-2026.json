@@ -1,0 +1,35 @@
+{
+  "slug": "bitcoin-above-54k-on-november-26-2026",
+  "market_id": "7176635",
+  "condition_id": "0x0a8b91730582902ebaf5b4b73894352148f87dc3967957615b0e9315cf58adfd",
+  "question": "Will the price of Bitcoin be above $54,000 on November 26?",
+  "kind": "above",
+  "asset": "BTC",
+  "direction": "up",
+  "level": 54000.0,
+  "rules": "This market will resolve to \"Yes\" if the Binance 1 minute candle for BTC/USDT closing at 12:00 in the ET timezone (noon) on the date specified in the title has a final \"Close\" price higher than the price specified in the title. Otherwise, this market will resolve to \"No\".\n\nThe resolution source for this market is Binance, specifically the BTC/USDT \"Close\" prices currently available at https://www.binance.com/en/trade/BTC_USDT with \"1m\" and \"Candles\" selected on the top bar.\n\nPlease note that this market is about the price according to Binance BTC/USDT, not according to other exchanges or trading pairs.\n\nPrice precision is determined by the number of decimal places in the source.",
+  "resolution_source": "https://www.binance.com/en/trade/BTC_USDT",
+  "start_utc": "2026-11-19T17:00:16Z",
+  "end_utc": "2026-11-26T17:00:00Z",
+  "end_taipei": "2026-11-27T01:00:00+08:00",
+  "event_slug": "bitcoin-above-on-november-26-2026",
+  "event_title": "Bitcoin above ___ on November 26?",
+  "yes_token": "74732685684855392034315165642947055894576833671115088683067846681053790100724",
+  "no_token": "81081445617239084384409668855587617344162396642617800663504894384121285616702",
+  "tick_size": 0.001,
+  "min_order_size": 5,
+  "tags": [
+    "bitcoin",
+    "weekly",
+    "multi-strikes",
+    "crypto",
+    "crypto-prices",
+    "recurring",
+    "hide-from-new"
+  ],
+  "written_at": {
+    "utc": "2026-11-20T09:50:55Z",
+    "taipei": "2026-11-20T17:50:55+08:00",
+    "epoch": 1795168255.489194
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "slug": "will-ethereum-dip-to-1700-on-november-20-2026",
+  "market_id": "7189820",
+  "condition_id": "0xe545c54406baeffee57da417561192d0ab7b340cebdb61fa135bbfa9277ad822",
+  "question": "Will Ethereum dip to $1,700 on November 20?",
+  "kind": "reach",
+  "asset": "ETH",
+  "direction": "down",
+  "level": 1700.0,
+  "rules": "This market will immediately resolve to \"Yes\" if any Binance 1 minute candle for Ethereum (ETH/USDT) on the date specified in the title, between 12:00 AM ET and 11:59 PM ET has a final \"Low\" price equal to or lower than the price specified in the title. Otherwise, this market will resolve to \"No.\"\n\nThe resolution source for this market is Binance, specifically the ETH/USDT \"Low\" prices available at https://www.binance.com/en/trade/ETH_USDT, with the chart settings on \"1m\" for one-minute candles selected on the top bar.\n\nPlease note that the outcome of this market depends solely on the price data from the Binance ETH/USDT trading pair. Prices from other exchanges, different trading pairs, or spot markets will not be considered for the resolution of this market.",
+  "resolution_source": "https://www.binance.com/en/trade/ETH_USDT",
+  "start_utc": "2026-11-20T05:00:19Z",
+  "end_utc": "2026-11-21T05:00:00Z",
+  "end_taipei": "2026-11-21T13:00:00+08:00",
+  "event_slug": "what-price-will-ethereum-hit-on-november-20-2026",
+  "event_title": "What price will Ethereum hit on November 20?",
+  "yes_token": "49189623216551293342182058017359828679283408635871048476855683940450028798951",
+  "no_token": "81490390548409461047572899847629239620636832626883533190682771872864295102539",
+  "tick_size": 0.01,
+  "min_order_size": 5,
+  "tags": [
+    "crypto",
+    "crypto-prices",
+    "recurring",
+    "hide-from-new",
+    "ethereum",
+    "daily",
+    "today",
+    "hit-price"
+  ],
+  "written_at": {
+    "utc": "2026-11-20T09:50:55Z",
+    "taipei": "2026-11-20T17:50:55+08:00",
+    "epoch": 1795168255.489194
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "slug": "bitcoin-above-66k-on-november-23-2026",
+  "kind": "above",
+  "asset": "BTC",
+  "direction": "up",
+  "level": 66000.0,
+  "end_utc": "2026-11-23T17:00:00Z",
+  "fair_yes": 0.052262,
+  "model": "N(d2)",
+  "spot": 61740.0,
+  "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT (1h×720, 1d×1000) + ticker/price",
+  "spot_ts": {
+    "utc": "2026-11-20T09:50:34Z",
+    "taipei": "2026-11-20T17:50:34+08:00",
+    "epoch": 1795168234.462995
+  },
+  "sigma": 0.43801083552675124,
+  "sigma_source": "binance_realized_1h_30d",
+  "T_years": 0.009036,
+  "fomc_in_window": false,
+  "base_rate": 0.0733,
+  "base_rate_samples": 996,
+  "inputs_unavailable": [],
+  "blind_file": "blind/bitcoin-above-66k-on-november-23-2026.json",
+  "date_taipei": "2026-11-20",
+  "ts": {
+    "utc": "2026-11-20T09:50:35Z",
+    "taipei": "2026-11-20T17:50:35+08:00",
+    "epoch": 1795168235.29067
+  }
+}

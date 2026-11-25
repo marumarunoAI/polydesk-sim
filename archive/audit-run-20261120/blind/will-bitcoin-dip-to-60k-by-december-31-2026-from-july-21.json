@@ -1,0 +1,34 @@
+{
+  "slug": "will-bitcoin-dip-to-60k-by-december-31-2026-from-july-21",
+  "market_id": "3013350",
+  "condition_id": "0x6c8bc8cd9b2d64358ad995ccee8e998cf0f81a89c4be0b8e51eadf09c6be60ba",
+  "question": "Will Bitcoin dip to $60,000 by December 31, 2026?",
+  "kind": "reach",
+  "asset": "BTC",
+  "direction": "down",
+  "level": 60000.0,
+  "rules": "This market will resolve to \"Yes\" if any Binance 1 minute candle for Bitcoin (BTC/USDT) between the creation of this market through 11:59 PM ET on the last day of the year specified in the title has a final “Low” price equal to or lower than the price specified in the title. Otherwise, this market will resolve to \"No\". Price action before this market's creation will not be considered.\n\nThe resolution source for this market is Binance, specifically the BTC/USDT “Low” prices available at https://www.binance.com/en/trade/BTC_USDT, with the chart settings on \"1m\" for one-minute candles selected on the top bar.\n\nPlease note that the outcome of this market depends solely on the price data from the Binance BTC/USDT trading pair. Prices from other exchanges, different trading pairs, or spot markets will not be considered for the resolution of this market.",
+  "resolution_source": "https://www.binance.com/en/trade/BTC_USDT",
+  "start_utc": "2026-07-21T06:43:09.912Z",
+  "end_utc": "2027-01-01T05:00:00Z",
+  "end_taipei": "2027-01-01T13:00:00+08:00",
+  "event_slug": "what-price-will-bitcoin-hit-before-2027",
+  "event_title": "What price will Bitcoin hit in 2026?",
+  "yes_token": "104279604547231872129402198190232956636095665469278761891693384128061158683041",
+  "no_token": "71378443524585182161509165206687359935571329472000076556085474136388673584216",
+  "tick_size": 0.01,
+  "min_order_size": 5,
+  "tags": [
+    "bitcoin",
+    "yearly",
+    "hit-price",
+    "crypto-prices",
+    "crypto",
+    "earn-4"
+  ],
+  "written_at": {
+    "utc": "2026-11-20T09:50:55Z",
+    "taipei": "2026-11-20T17:50:55+08:00",
+    "epoch": 1795168255.489194
+  }
+}

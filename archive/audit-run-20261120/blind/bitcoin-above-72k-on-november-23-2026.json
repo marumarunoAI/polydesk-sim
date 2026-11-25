@@ -1,0 +1,35 @@
+{
+  "slug": "bitcoin-above-72k-on-november-23-2026",
+  "market_id": "7097185",
+  "condition_id": "0xc06f1c22ff0ee0134021c0c6aa2a4e025ae934f4c243b7a011b02ebbb9a60b86",
+  "question": "Will the price of Bitcoin be above $72,000 on November 23?",
+  "kind": "above",
+  "asset": "BTC",
+  "direction": "up",
+  "level": 72000.0,
+  "rules": "This market will resolve to \"Yes\" if the Binance 1 minute candle for BTC/USDT closing at 12:00 in the ET timezone (noon) on the date specified in the title has a final \"Close\" price higher than the price specified in the title. Otherwise, this market will resolve to \"No\".\n\nThe resolution source for this market is Binance, specifically the BTC/USDT \"Close\" prices currently available at https://www.binance.com/en/trade/BTC_USDT with \"1m\" and \"Candles\" selected on the top bar.\n\nPlease note that this market is about the price according to Binance BTC/USDT, not according to other exchanges or trading pairs.\n\nPrice precision is determined by the number of decimal places in the source.",
+  "resolution_source": "https://www.binance.com/en/trade/BTC_USDT",
+  "start_utc": "2026-11-16T17:00:14Z",
+  "end_utc": "2026-11-23T17:00:00Z",
+  "end_taipei": "2026-11-24T01:00:00+08:00",
+  "event_slug": "bitcoin-above-on-november-23-2026",
+  "event_title": "Bitcoin above ___ on November 23?",
+  "yes_token": "32184245584033362177619506826573163936480271433907031922997828496607949069154",
+  "no_token": "43937228731903133137707576395099908071289000682707355903060080845969520101497",
+  "tick_size": 0.001,
+  "min_order_size": 5,
+  "tags": [
+    "bitcoin",
+    "weekly",
+    "multi-strikes",
+    "crypto",
+    "crypto-prices",
+    "recurring",
+    "hide-from-new"
+  ],
+  "written_at": {
+    "utc": "2026-11-20T09:50:55Z",
+    "taipei": "2026-11-20T17:50:55+08:00",
+    "epoch": 1795168255.489194
+  }
+}

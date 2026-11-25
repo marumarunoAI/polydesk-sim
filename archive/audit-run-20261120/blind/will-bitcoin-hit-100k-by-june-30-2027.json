@@ -1,0 +1,32 @@
+{
+  "slug": "will-bitcoin-hit-100k-by-june-30-2027",
+  "market_id": "3748065",
+  "condition_id": "0x83aa84de0070b8ed07bfa042d5f84a37e15d109d812ef771346c8a1f9f3922e9",
+  "question": "Will Bitcoin hit $100k by June 30, 2027?",
+  "kind": "reach",
+  "asset": "BTC",
+  "direction": "up",
+  "level": 100000.0,
+  "rules": "This market will immediately resolve to \"Yes\" if any Binance 1 minute candle for Bitcoin (BTC/USDT) from the creation of this market until 11:59 PM ET on the date specified in the title has a final \"High\" price equal to or greater than $100,000. Otherwise, this market will resolve to \"No\".\n\nThe resolution source for this market is Binance, specifically the BTC/USDT \"High\" prices available at https://www.binance.com/en/trade/BTC_USDT, with the chart settings on \"1m\" for one-minute candles selected on the top bar.\n\nPlease note that the outcome of this market depends solely on the price data from the Binance BTC/USDT trading pair. Prices from other exchanges, different trading pairs, or spot markets will not be considered for the resolution of this market.",
+  "resolution_source": "https://www.binance.com/en/trade/BTC_USDT",
+  "start_utc": "2026-08-20T17:50:40Z",
+  "end_utc": "2027-07-01T04:00:00Z",
+  "end_taipei": "2027-07-01T12:00:00+08:00",
+  "event_slug": "when-will-bitcoin-hit-100k",
+  "event_title": "When will Bitcoin hit $100k?",
+  "yes_token": "92729135113880257860466524439053194327518712279830204873402906487369753022520",
+  "no_token": "92546120211563585106990784226707466773095458001260832328196195064896339169818",
+  "tick_size": 0.01,
+  "min_order_size": 5,
+  "tags": [
+    "crypto",
+    "bitcoin",
+    "crypto-prices",
+    "price-milestone"
+  ],
+  "written_at": {
+    "utc": "2026-11-20T09:50:55Z",
+    "taipei": "2026-11-20T17:50:55+08:00",
+    "epoch": 1795168255.489194
+  }
+}

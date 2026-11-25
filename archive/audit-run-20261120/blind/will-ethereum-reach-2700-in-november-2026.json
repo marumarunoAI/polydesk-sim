@@ -1,0 +1,34 @@
+{
+  "slug": "will-ethereum-reach-2700-in-november-2026",
+  "market_id": "6507410",
+  "condition_id": "0x0a1a53d5cea344f2de8087f6ca2e243be49183115f85ea827cc7b159c0c75e7d",
+  "question": "Will Ethereum reach $2,700 in November?",
+  "kind": "reach",
+  "asset": "ETH",
+  "direction": "up",
+  "level": 2700.0,
+  "rules": "This market will immediately resolve to \"Yes\" if any Binance 1 minute candle for ETH/USDT during the month specified in the title (from 00:00 AM ET on the first day to 11:59 PM ET on the last), has a final High price equal to or greater than the price specified in the title. Otherwise, this market will resolve to \"No.\"\n\nThe resolution source for this market is Binance, specifically the ETH/USDT High prices available at https://www.binance.com/en/trade/ETH_USDT, with the chart settings on \"1m\" for one-minute candles selected on the top bar.\n\nPlease note that the outcome of this market depends solely on the price data from the Binance ETH/USDT trading pair. Prices from other exchanges, different trading pairs, or spot markets will not be considered for the resolution of this market.",
+  "resolution_source": "https://www.binance.com/en/trade/ETH_USDT",
+  "start_utc": "2026-11-01T05:07:15Z",
+  "end_utc": "2026-12-01T05:00:00Z",
+  "end_taipei": "2026-12-01T13:00:00+08:00",
+  "event_slug": "what-price-will-ethereum-hit-in-november-2026",
+  "event_title": "What price will Ethereum hit in November?",
+  "yes_token": "91901652544500274224043479330013499468488493328243415735560385375463049659587",
+  "no_token": "53545934052161312486599947970951384690977450484500687557961335521539768360419",
+  "tick_size": 0.001,
+  "min_order_size": 5,
+  "tags": [
+    "ethereum",
+    "monthly",
+    "hit-price",
+    "crypto",
+    "crypto-prices",
+    "recurring"
+  ],
+  "written_at": {
+    "utc": "2026-11-20T09:50:55Z",
+    "taipei": "2026-11-20T17:50:55+08:00",
+    "epoch": 1795168255.489194
+  }
+}

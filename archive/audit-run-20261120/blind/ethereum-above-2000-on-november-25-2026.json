@@ -1,0 +1,35 @@
+{
+  "slug": "ethereum-above-2000-on-november-25-2026",
+  "market_id": "7150159",
+  "condition_id": "0x327eca163a6a404bbf74bb82f487f9370eed9d22cfe887b894ffa9202df61069",
+  "question": "Will the price of Ethereum be above $2,000 on November 25?",
+  "kind": "above",
+  "asset": "ETH",
+  "direction": "up",
+  "level": 2000.0,
+  "rules": "This market will resolve to \"Yes\" if the Binance 1 minute candle for ETH/USDT closing at 12:00 in the ET timezone (noon) on the date specified in the title has a final \"Close\" price higher than the price specified in the title. Otherwise, this market will resolve to \"No\".\n\nThe resolution source for this market is Binance, specifically the ETH/USDT \"Close\" prices currently available at https://www.binance.com/en/trade/ETH_USDT with \"1m\" and \"Candles\" selected on the top bar.\n\nPlease note that this market is about the price according to Binance ETH/USDT, not according to other exchanges or trading pairs.\n\nPrice precision is determined by the number of decimal places in the source.",
+  "resolution_source": "https://www.binance.com/en/trade/ETH_USDT",
+  "start_utc": "2026-11-18T17:00:13Z",
+  "end_utc": "2026-11-25T17:00:00Z",
+  "end_taipei": "2026-11-26T01:00:00+08:00",
+  "event_slug": "ethereum-above-on-november-25-2026",
+  "event_title": "Ethereum above ___ on November 25?",
+  "yes_token": "556358458405552342647406604941066808006859579317189283453096496047162572687",
+  "no_token": "74968400980486557737647462014722900135959922240658493110151338780722281328618",
+  "tick_size": 0.001,
+  "min_order_size": 5,
+  "tags": [
+    "ethereum",
+    "weekly",
+    "multi-strikes",
+    "crypto",
+    "crypto-prices",
+    "recurring",
+    "hide-from-new"
+  ],
+  "written_at": {
+    "utc": "2026-11-20T09:50:55Z",
+    "taipei": "2026-11-20T17:50:55+08:00",
+    "epoch": 1795168255.489194
+  }
+}

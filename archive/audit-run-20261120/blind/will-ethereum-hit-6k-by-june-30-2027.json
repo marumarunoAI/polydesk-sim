@@ -1,0 +1,32 @@
+{
+  "slug": "will-ethereum-hit-6k-by-june-30-2027",
+  "market_id": "3748391",
+  "condition_id": "0x2a783c6c3342d6c0680488462065b89cbf089ce16a8ba3a3067f6ed95a7533ee",
+  "question": "Will Ethereum hit $6k by June 30, 2027?",
+  "kind": "reach",
+  "asset": "ETH",
+  "direction": "up",
+  "level": 6000.0,
+  "rules": "This market will immediately resolve to \"Yes\" if any Binance 1 minute candle for Ethereum (ETH/USDT) from the creation of this market until 11:59 PM ET on the date specified in the title has a final \"High\" price equal to or greater than $6,000. Otherwise, this market will resolve to \"No\".\n\nThe resolution source for this market is Binance, specifically the ETH/USDT \"High\" prices available at https://www.binance.com/en/trade/ETH_USDT, with the chart settings on \"1m\" for one-minute candles selected on the top bar.\n\nPlease note that the outcome of this market depends solely on the price data from the Binance ETH/USDT trading pair. Prices from other exchanges, different trading pairs, or spot markets will not be considered for the resolution of this market.",
+  "resolution_source": "https://www.binance.com/en/trade/ETH_USDT",
+  "start_utc": "2026-08-20T18:24:09Z",
+  "end_utc": "2027-07-01T04:00:00Z",
+  "end_taipei": "2027-07-01T12:00:00+08:00",
+  "event_slug": "when-will-ethereum-hit-6k",
+  "event_title": "When will Ethereum hit $6k?",
+  "yes_token": "96435936723638597154522722927697810349214741045866221649180488247980544020861",
+  "no_token": "89676345904929297899190383435074127585700372921403185440074178163642494509274",
+  "tick_size": 0.01,
+  "min_order_size": 5,
+  "tags": [
+    "crypto",
+    "ethereum",
+    "crypto-prices",
+    "price-milestone"
+  ],
+  "written_at": {
+    "utc": "2026-11-20T09:50:55Z",
+    "taipei": "2026-11-20T17:50:55+08:00",
+    "epoch": 1795168255.489194
+  }
+}

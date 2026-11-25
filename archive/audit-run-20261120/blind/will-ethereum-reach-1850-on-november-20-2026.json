@@ -1,0 +1,36 @@
+{
+  "slug": "will-ethereum-reach-1850-on-november-20-2026",
+  "market_id": "7189817",
+  "condition_id": "0x7c2da2bd45dfc00862c171bf12d73142123494e0276b643b542dcb62d6381c9a",
+  "question": "Will Ethereum reach $1,850 on November 20?",
+  "kind": "reach",
+  "asset": "ETH",
+  "direction": "up",
+  "level": 1850.0,
+  "rules": "This market will immediately resolve to \"Yes\" if any Binance 1-minute candle for Ethereum (ETH/USDT) on the date specified in the title, between 12:00 AM ET and 11:59 PM ET has a final \"High\" price equal to or greater than the price specified in the title. Otherwise, this market will resolve to \"No\".\n\nThe resolution source for this market is Binance, specifically the ETH/USDT \"High\" prices available at https://www.binance.com/en/trade/ETH_USDT, with the chart settings on \"1m\" candles selected on the top bar.\n\nPlease note that the outcome of this market depends solely on the price data from the Binance ETH/USDT trading pair. Prices from other exchanges, different trading pairs, or spot markets will not be considered for the resolution of this market.",
+  "resolution_source": "https://www.binance.com/en/trade/ETH_USDT",
+  "start_utc": "2026-11-20T05:00:19Z",
+  "end_utc": "2026-11-21T05:00:00Z",
+  "end_taipei": "2026-11-21T13:00:00+08:00",
+  "event_slug": "what-price-will-ethereum-hit-on-november-20-2026",
+  "event_title": "What price will Ethereum hit on November 20?",
+  "yes_token": "59517089981407191784130137540385200280626214863657744107748026075065813444158",
+  "no_token": "40895948963587351633501758324823755548790789303707108042760919170317702560366",
+  "tick_size": 0.01,
+  "min_order_size": 5,
+  "tags": [
+    "crypto",
+    "crypto-prices",
+    "recurring",
+    "hide-from-new",
+    "ethereum",
+    "daily",
+    "today",
+    "hit-price"
+  ],
+  "written_at": {
+    "utc": "2026-11-20T09:50:55Z",
+    "taipei": "2026-11-20T17:50:55+08:00",
+    "epoch": 1795168255.489194
+  }
+}
