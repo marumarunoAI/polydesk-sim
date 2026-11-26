@@ -7,25 +7,25 @@
   "end_utc": "2026-11-23T05:00:00Z",
   "fair_yes": 1.0,
   "model": "touch=2N(-|ln(X/S)|/(σ√T))",
-  "spot": 1657.52,
+  "spot": 1695.88,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-25T05:49:28Z",
-    "taipei": "2026-11-25T13:49:28+08:00",
-    "epoch": 1795585768.634184
+    "utc": "2026-11-26T05:45:52Z",
+    "taipei": "2026-11-26T13:45:52+08:00",
+    "epoch": 1795671952.191883
   },
-  "sigma": 0.6808505403000216,
+  "sigma": 0.6860748693102886,
   "sigma_source": "binance_realized_1h_30d",
   "T_years": 0.0,
   "fomc_in_window": false,
-  "base_rate": 0.031,
+  "base_rate": 0.0741,
   "base_rate_samples": 999,
   "inputs_unavailable": [],
   "blind_file": "blind/will-ethereum-reach-1800-november-16-22-2026-from-november-19.json",
-  "date_taipei": "2026-11-25",
+  "date_taipei": "2026-11-26",
   "ts": {
-    "utc": "2026-11-25T05:49:53Z",
-    "taipei": "2026-11-25T13:49:53+08:00",
-    "epoch": 1795585793.864953
+    "utc": "2026-11-26T05:46:18Z",
+    "taipei": "2026-11-26T13:46:18+08:00",
+    "epoch": 1795671978.412028
   }
 }

@@ -5,27 +5,27 @@
   "direction": "up",
   "level": 2000.0,
   "end_utc": "2026-11-28T17:00:00Z",
-  "fair_yes": 0.00209,
+  "fair_yes": 0.001579,
   "model": "N(d2)",
-  "spot": 1657.52,
+  "spot": 1695.88,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-25T05:49:28Z",
-    "taipei": "2026-11-25T13:49:28+08:00",
-    "epoch": 1795585768.634184
+    "utc": "2026-11-26T05:45:52Z",
+    "taipei": "2026-11-26T13:45:52+08:00",
+    "epoch": 1795671952.191883
   },
-  "sigma": 0.6808505403000216,
+  "sigma": 0.6860748693102886,
   "sigma_source": "binance_realized_1h_30d",
-  "T_years": 0.009495,
+  "T_years": 0.006762,
   "fomc_in_window": false,
   "base_rate": 0.012,
-  "base_rate_samples": 996,
+  "base_rate_samples": 997,
   "inputs_unavailable": [],
   "blind_file": "blind/ethereum-above-2000-on-november-28-2026.json",
-  "date_taipei": "2026-11-25",
+  "date_taipei": "2026-11-26",
   "ts": {
-    "utc": "2026-11-25T05:49:28Z",
-    "taipei": "2026-11-25T13:49:28+08:00",
-    "epoch": 1795585768.792014
+    "utc": "2026-11-26T05:45:52Z",
+    "taipei": "2026-11-26T13:45:52+08:00",
+    "epoch": 1795671952.358564
   }
 }

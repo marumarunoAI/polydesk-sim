@@ -7,25 +7,25 @@
   "end_utc": "2027-01-01T05:00:00Z",
   "fair_yes": 0.0,
   "model": "touch=2N(-|ln(X/S)|/(σ√T))",
-  "spot": 1657.52,
+  "spot": 1695.88,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-25T05:49:28Z",
-    "taipei": "2026-11-25T13:49:28+08:00",
-    "epoch": 1795585768.634184
+    "utc": "2026-11-26T05:45:52Z",
+    "taipei": "2026-11-26T13:45:52+08:00",
+    "epoch": 1795671952.191883
   },
-  "sigma": 0.6639,
+  "sigma": 0.6531,
   "sigma_source": "deribit_dvol (FOMC in window)",
-  "T_years": 0.101276,
+  "T_years": 0.098543,
   "fomc_in_window": true,
   "base_rate": 0.0,
-  "base_rate_samples": 963,
+  "base_rate_samples": 964,
   "inputs_unavailable": [],
   "blind_file": "blind/will-ethereum-reach-6500-by-december-31-2026.json",
-  "date_taipei": "2026-11-25",
+  "date_taipei": "2026-11-26",
   "ts": {
-    "utc": "2026-11-25T05:49:56Z",
-    "taipei": "2026-11-25T13:49:56+08:00",
-    "epoch": 1795585796.681053
+    "utc": "2026-11-26T05:46:21Z",
+    "taipei": "2026-11-26T13:46:21+08:00",
+    "epoch": 1795671981.178505
   }
 }

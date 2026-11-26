@@ -5,27 +5,27 @@
   "direction": "up",
   "level": 4000.0,
   "end_utc": "2027-10-01T04:00:00Z",
-  "fair_yes": 0.149853,
+  "fair_yes": 0.153249,
   "model": "touch=2N(-|ln(X/S)|/(σ√T))",
-  "spot": 1657.52,
+  "spot": 1695.88,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-25T05:49:28Z",
-    "taipei": "2026-11-25T13:49:28+08:00",
-    "epoch": 1795585768.634184
+    "utc": "2026-11-26T05:45:52Z",
+    "taipei": "2026-11-26T13:45:52+08:00",
+    "epoch": 1795671952.191883
   },
-  "sigma": 0.6639,
+  "sigma": 0.6531,
   "sigma_source": "deribit_dvol (FOMC in window)",
-  "T_years": 0.849107,
+  "T_years": 0.846374,
   "fomc_in_window": true,
-  "base_rate": 0.0826,
-  "base_rate_samples": 690,
+  "base_rate": 0.0868,
+  "base_rate_samples": 691,
   "inputs_unavailable": [],
   "blind_file": "blind/will-ethereum-hit-4k-by-september-30-2027.json",
-  "date_taipei": "2026-11-25",
+  "date_taipei": "2026-11-26",
   "ts": {
-    "utc": "2026-11-25T05:49:51Z",
-    "taipei": "2026-11-25T13:49:51+08:00",
-    "epoch": 1795585791.097858
+    "utc": "2026-11-26T05:46:15Z",
+    "taipei": "2026-11-26T13:46:15+08:00",
+    "epoch": 1795671975.697634
   }
 }

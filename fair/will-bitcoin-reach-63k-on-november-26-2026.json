@@ -1,0 +1,31 @@
+{
+  "slug": "will-bitcoin-reach-63k-on-november-26-2026",
+  "kind": "reach",
+  "asset": "BTC",
+  "direction": "up",
+  "level": 63000.0,
+  "end_utc": "2026-11-27T05:00:00Z",
+  "fair_yes": 0.21798,
+  "model": "touch=2N(-|ln(X/S)|/(σ√T))",
+  "spot": 60812.5,
+  "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT (1h×720, 1d×1000) + ticker/price",
+  "spot_ts": {
+    "utc": "2026-11-26T05:45:51Z",
+    "taipei": "2026-11-26T13:45:51+08:00",
+    "epoch": 1795671951.49527
+  },
+  "sigma": 0.5569882546541421,
+  "sigma_source": "binance_realized_1h_30d",
+  "T_years": 0.002653,
+  "fomc_in_window": false,
+  "base_rate": 0.1181,
+  "base_rate_samples": 999,
+  "inputs_unavailable": [],
+  "blind_file": "blind/will-bitcoin-reach-63k-on-november-26-2026.json",
+  "date_taipei": "2026-11-26",
+  "ts": {
+    "utc": "2026-11-26T05:46:05Z",
+    "taipei": "2026-11-26T13:46:05+08:00",
+    "epoch": 1795671965.477951
+  }
+}

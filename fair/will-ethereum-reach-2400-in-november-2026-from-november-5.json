@@ -5,27 +5,27 @@
   "direction": "up",
   "level": 2400.0,
   "end_utc": "2026-12-01T05:00:00Z",
-  "fair_yes": 2.1e-05,
+  "fair_yes": 1.4e-05,
   "model": "touch=2N(-|ln(X/S)|/(σ√T))",
-  "spot": 1657.52,
+  "spot": 1695.88,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-25T05:49:28Z",
-    "taipei": "2026-11-25T13:49:28+08:00",
-    "epoch": 1795585768.634184
+    "utc": "2026-11-26T05:45:52Z",
+    "taipei": "2026-11-26T13:45:52+08:00",
+    "epoch": 1795671952.191883
   },
-  "sigma": 0.6808505403000216,
+  "sigma": 0.6860748693102886,
   "sigma_source": "binance_realized_1h_30d",
-  "T_years": 0.016344,
+  "T_years": 0.013611,
   "fomc_in_window": false,
-  "base_rate": 0.001,
-  "base_rate_samples": 994,
+  "base_rate": 0.003,
+  "base_rate_samples": 995,
   "inputs_unavailable": [],
   "blind_file": "blind/will-ethereum-reach-2400-in-november-2026-from-november-5.json",
-  "date_taipei": "2026-11-25",
+  "date_taipei": "2026-11-26",
   "ts": {
-    "utc": "2026-11-25T05:49:56Z",
-    "taipei": "2026-11-25T13:49:56+08:00",
-    "epoch": 1795585796.11751
+    "utc": "2026-11-26T05:46:20Z",
+    "taipei": "2026-11-26T13:46:20+08:00",
+    "epoch": 1795671980.622948
   }
 }
