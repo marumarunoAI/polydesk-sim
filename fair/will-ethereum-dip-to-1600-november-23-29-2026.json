@@ -5,27 +5,27 @@
   "direction": "down",
   "level": 1600.0,
   "end_utc": "2026-11-30T05:00:00Z",
-  "fair_yes": 0.415898,
+  "fair_yes": 0.166192,
   "model": "touch=2N(-|ln(X/S)|/(σ√T))",
-  "spot": 1695.88,
+  "spot": 1743.64,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-26T05:45:52Z",
-    "taipei": "2026-11-26T13:45:52+08:00",
-    "epoch": 1795671952.191883
+    "utc": "2026-11-27T05:42:42Z",
+    "taipei": "2026-11-27T13:42:42+08:00",
+    "epoch": 1795758162.543841
   },
-  "sigma": 0.6860748693102886,
+  "sigma": 0.6883163509320771,
   "sigma_source": "binance_realized_1h_30d",
-  "T_years": 0.010872,
+  "T_years": 0.008138,
   "fomc_in_window": false,
-  "base_rate": 0.3574,
-  "base_rate_samples": 996,
+  "base_rate": 0.1695,
+  "base_rate_samples": 997,
   "inputs_unavailable": [],
   "blind_file": "blind/will-ethereum-dip-to-1600-november-23-29-2026.json",
-  "date_taipei": "2026-11-26",
+  "date_taipei": "2026-11-27",
   "ts": {
-    "utc": "2026-11-26T05:46:14Z",
-    "taipei": "2026-11-26T13:46:14+08:00",
-    "epoch": 1795671974.034883
+    "utc": "2026-11-27T05:43:04Z",
+    "taipei": "2026-11-27T13:43:04+08:00",
+    "epoch": 1795758184.853954
   }
 }

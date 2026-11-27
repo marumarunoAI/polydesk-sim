@@ -7,25 +7,25 @@
   "end_utc": "2026-11-23T05:00:00Z",
   "fair_yes": 0.0,
   "model": "touch=2N(-|ln(X/S)|/(σ√T))",
-  "spot": 1695.88,
+  "spot": 1743.64,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-26T05:45:52Z",
-    "taipei": "2026-11-26T13:45:52+08:00",
-    "epoch": 1795671952.191883
+    "utc": "2026-11-27T05:42:42Z",
+    "taipei": "2026-11-27T13:42:42+08:00",
+    "epoch": 1795758162.543841
   },
-  "sigma": 0.6860748693102886,
+  "sigma": 0.6883163509320771,
   "sigma_source": "binance_realized_1h_30d",
   "T_years": 0.0,
   "fomc_in_window": false,
-  "base_rate": 0.007,
+  "base_rate": 0.014,
   "base_rate_samples": 999,
   "inputs_unavailable": [],
   "blind_file": "blind/will-ethereum-reach-1950-on-november-22-2026.json",
-  "date_taipei": "2026-11-26",
+  "date_taipei": "2026-11-27",
   "ts": {
-    "utc": "2026-11-26T05:46:19Z",
-    "taipei": "2026-11-26T13:46:19+08:00",
-    "epoch": 1795671979.145759
+    "utc": "2026-11-27T05:43:09Z",
+    "taipei": "2026-11-27T13:43:09+08:00",
+    "epoch": 1795758189.746871
   }
 }

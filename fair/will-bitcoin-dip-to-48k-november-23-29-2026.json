@@ -5,27 +5,27 @@
   "direction": "down",
   "level": 48000.0,
   "end_utc": "2026-11-30T05:00:00Z",
-  "fair_yes": 4.6e-05,
+  "fair_yes": 1e-06,
   "model": "touch=2N(-|ln(X/S)|/(σ√T))",
-  "spot": 60812.5,
+  "spot": 61744.19,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-26T05:45:51Z",
-    "taipei": "2026-11-26T13:45:51+08:00",
-    "epoch": 1795671951.49527
+    "utc": "2026-11-27T05:42:41Z",
+    "taipei": "2026-11-27T13:42:41+08:00",
+    "epoch": 1795758161.831619
   },
-  "sigma": 0.5569882546541421,
+  "sigma": 0.5589385090981848,
   "sigma_source": "binance_realized_1h_30d",
-  "T_years": 0.010872,
+  "T_years": 0.008138,
   "fomc_in_window": false,
-  "base_rate": 0.002,
-  "base_rate_samples": 996,
+  "base_rate": 0.0,
+  "base_rate_samples": 997,
   "inputs_unavailable": [],
   "blind_file": "blind/will-bitcoin-dip-to-48k-november-23-29-2026.json",
-  "date_taipei": "2026-11-26",
+  "date_taipei": "2026-11-27",
   "ts": {
-    "utc": "2026-11-26T05:45:55Z",
-    "taipei": "2026-11-26T13:45:55+08:00",
-    "epoch": 1795671955.992898
+    "utc": "2026-11-27T05:42:46Z",
+    "taipei": "2026-11-27T13:42:46+08:00",
+    "epoch": 1795758166.206821
   }
 }

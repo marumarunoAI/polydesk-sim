@@ -1,0 +1,3 @@
+time_taipei,time_utc,parent_ticket,strategy,slug,outcome,held_shares,reason,sell_limit,exit_ticket
+2026-11-27T13:43:22+08:00,2026-11-27T05:43:22Z,2026-11-23_S1_will-bitcoin-dip-to-45k-in-november-2026,S1,will-bitcoin-dip-to-45k-in-november-2026,NO,30.9598,edge 0.35pp < 0.5pp,0.997,2026-11-23_S1_will-bitcoin-dip-to-45k-in-november-2026_EXIT
+2026-11-27T13:43:22+08:00,2026-11-27T05:43:22Z,2026-11-23_S1_will-ethereum-dip-to-1200-in-november-2026,S1,will-ethereum-dip-to-1200-in-november-2026,NO,31.0881,edge 0.45pp < 0.5pp,0.996,2026-11-23_S1_will-ethereum-dip-to-1200-in-november-2026_EXIT
