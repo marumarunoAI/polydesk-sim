@@ -1,0 +1,31 @@
+{
+  "slug": "bitcoin-above-64k-on-december-4-2026",
+  "kind": "above",
+  "asset": "BTC",
+  "direction": "up",
+  "level": 64000.0,
+  "end_utc": "2026-12-04T17:00:00Z",
+  "fair_yes": 0.173103,
+  "model": "N(d2)",
+  "spot": 59735.65,
+  "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT (1h×720, 1d×1000) + ticker/price",
+  "spot_ts": {
+    "utc": "2026-11-28T05:38:43Z",
+    "taipei": "2026-11-28T13:38:43+08:00",
+    "epoch": 1795844323.947753
+  },
+  "sigma": 0.5728804038696652,
+  "sigma_source": "binance_realized_1h_30d",
+  "T_years": 0.017735,
+  "fomc_in_window": false,
+  "base_rate": 0.1138,
+  "base_rate_samples": 993,
+  "inputs_unavailable": [],
+  "blind_file": "blind/bitcoin-above-64k-on-december-4-2026.json",
+  "date_taipei": "2026-11-28",
+  "ts": {
+    "utc": "2026-11-28T05:38:44Z",
+    "taipei": "2026-11-28T13:38:44+08:00",
+    "epoch": 1795844324.738979
+  }
+}

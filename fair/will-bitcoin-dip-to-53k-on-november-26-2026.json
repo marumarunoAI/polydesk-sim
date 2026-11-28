@@ -7,25 +7,25 @@
   "end_utc": "2026-11-27T05:00:00Z",
   "fair_yes": 0.0,
   "model": "touch=2N(-|ln(X/S)|/(σ√T))",
-  "spot": 61744.19,
+  "spot": 59735.65,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-27T05:42:41Z",
-    "taipei": "2026-11-27T13:42:41+08:00",
-    "epoch": 1795758161.831619
+    "utc": "2026-11-28T05:38:43Z",
+    "taipei": "2026-11-28T13:38:43+08:00",
+    "epoch": 1795844323.947753
   },
-  "sigma": 0.5589385090981848,
+  "sigma": 0.5728804038696652,
   "sigma_source": "binance_realized_1h_30d",
   "T_years": 0.0,
   "fomc_in_window": false,
-  "base_rate": 0.003,
+  "base_rate": 0.004,
   "base_rate_samples": 999,
   "inputs_unavailable": [],
   "blind_file": "blind/will-bitcoin-dip-to-53k-on-november-26-2026.json",
-  "date_taipei": "2026-11-27",
+  "date_taipei": "2026-11-28",
   "ts": {
-    "utc": "2026-11-27T05:42:48Z",
-    "taipei": "2026-11-27T13:42:48+08:00",
-    "epoch": 1795758168.637618
+    "utc": "2026-11-28T05:38:51Z",
+    "taipei": "2026-11-28T13:38:51+08:00",
+    "epoch": 1795844331.017456
   }
 }

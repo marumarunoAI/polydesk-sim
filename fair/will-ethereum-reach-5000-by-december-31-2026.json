@@ -7,25 +7,25 @@
   "end_utc": "2027-01-01T05:00:00Z",
   "fair_yes": 0.0,
   "model": "touch=2N(-|ln(X/S)|/(σ√T))",
-  "spot": 1743.64,
+  "spot": 1655.65,
   "spot_source": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT (1h×720, 1d×1000) + ticker/price",
   "spot_ts": {
-    "utc": "2026-11-27T05:42:42Z",
-    "taipei": "2026-11-27T13:42:42+08:00",
-    "epoch": 1795758162.543841
+    "utc": "2026-11-28T05:38:44Z",
+    "taipei": "2026-11-28T13:38:44+08:00",
+    "epoch": 1795844324.616189
   },
-  "sigma": 0.6352,
+  "sigma": 0.6553,
   "sigma_source": "deribit_dvol (FOMC in window)",
-  "T_years": 0.095809,
+  "T_years": 0.093077,
   "fomc_in_window": true,
   "base_rate": 0.0,
-  "base_rate_samples": 965,
+  "base_rate_samples": 966,
   "inputs_unavailable": [],
   "blind_file": "blind/will-ethereum-reach-5000-by-december-31-2026.json",
-  "date_taipei": "2026-11-27",
+  "date_taipei": "2026-11-28",
   "ts": {
-    "utc": "2026-11-27T05:43:11Z",
-    "taipei": "2026-11-27T13:43:11+08:00",
-    "epoch": 1795758191.689068
+    "utc": "2026-11-28T05:39:16Z",
+    "taipei": "2026-11-28T13:39:16+08:00",
+    "epoch": 1795844356.130851
   }
 }
